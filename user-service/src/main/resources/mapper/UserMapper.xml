@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dujiacun.userservice.mapper.UserMapper">
+<resultMap id="resultMap" type="dujiacun.userservice.entity.UserEntity">
+    <id property="userName" column="user_name" javaType="java.lang.String"/>
+    <result  property="passWord" column="pass_word" javaType="java.lang.String"/>
+    <result  property="lastLoginDate" column="last_login_date" javaType="java.util.Date"/>
+</resultMap>
+    <select id="getUserInfo" parameterType="dujiacun.userservice.entity.bo.UserParamBo" resultMap="resultMap">
+        SELECT user_name, pass_word, last_login_date
+        FROM user_master
+        WHERE user_name = #{userParamBo.userName,jdbcType=VARCHAR}
+    </select>
+</mapper>

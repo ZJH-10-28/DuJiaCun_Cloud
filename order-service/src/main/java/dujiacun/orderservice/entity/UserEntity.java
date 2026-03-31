@@ -1,18 +1,19 @@
-package dujiacun.userservice.entity.dto;
+package dujiacun.orderservice.entity;
 
 import lombok.Data;
 
 import java.util.Date;
+
 @Data
-public class UserResponseDto {
+public class UserEntity {
     private Long userId;
     private String userName;
     private String passWord;
     private Date lastLoginDate;
 
-    public UserResponseDto(){};
+    public UserEntity(){};
 
-    public UserResponseDto(Long userId,String userName,String passWord,Date lastLoginDate) {
+    public UserEntity(Long userId, String userName, String passWord, Date lastLoginDate) {
         this.userId = userId;
         this.userName = userName;
         this.passWord = passWord;

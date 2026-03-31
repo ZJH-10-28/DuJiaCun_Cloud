@@ -4,5 +4,6 @@ import dujiacun.orderservice.entity.bo.OrderInfoBo;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
 
 public interface IOrderService {
-    OrderInfoBo getUserInfo(OrderParamBo orderParamBo);
+    OrderInfoBo getOrderInfo(OrderParamBo orderParamBo);
+
 }

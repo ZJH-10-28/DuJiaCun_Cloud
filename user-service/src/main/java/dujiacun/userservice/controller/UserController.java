@@ -7,10 +7,7 @@ import dujiacun.userservice.entity.dto.UserResponseDto;
 import dujiacun.userservice.service.IUserService;
 import dujiacun.userservice.util.BeanConvertUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/user")
@@ -23,5 +20,11 @@ public class UserController {
         UserParamBo userParamBo = BeanConvertUtil.convert(userRequestDto, UserParamBo.class);
 
         return BeanConvertUtil.convert(userService.getUserInfo(userParamBo), UserResponseDto.class);
+    }
+
+    @GetMapping("/{userId}")
+    public UserResponseDto getByUserId(@PathVariable Long userId) {
+        UserParamBo userParamBo = new UserParamBo(userId,null,null,null);
+        return BeanConvertUtil.convert(userService.getByUserId(userParamBo), UserResponseDto.class);
     }
 }

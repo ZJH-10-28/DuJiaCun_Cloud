@@ -3,13 +3,15 @@
 
 <mapper namespace="dujiacun.orderservice.mapper.OrderMapper">
 <resultMap id="resultMap" type="dujiacun.orderservice.entity.OrderEntity">
-    <id property="userName" column="user_name" javaType="java.lang.String"/>
-    <result  property="passWord" column="pass_word" javaType="java.lang.String"/>
-    <result  property="lastLoginDate" column="last_login_date" javaType="java.util.Date"/>
+    <id property="orderId" column="order_id" javaType="java.lang.Long"/>
+    <result  property="orderName" column="order_name" javaType="java.lang.String"/>
+    <result  property="orderPrice" column="order_price" javaType="java.lang.Double"/>
+    <result  property="orderNum" column="order_num" javaType="java.lang.Integer"/>
+    <result  property="userId" column="user_id" javaType="java.lang.Long"/>
 </resultMap>
     <select id="getOrderInfo" parameterType="dujiacun.orderservice.entity.bo.OrderParamBo" resultMap="resultMap">
-        SELECT user_name, pass_word, last_login_date
-        FROM user_master
-        WHERE user_name = #{orderParamBo.userName,jdbcType=VARCHAR}
+        SELECT order_id, order_name, order_price,order_num,user_id
+        FROM order_master
+        WHERE order_id = #{orderParamBo.orderId,jdbcType=BIGINT}
     </select>
 </mapper>

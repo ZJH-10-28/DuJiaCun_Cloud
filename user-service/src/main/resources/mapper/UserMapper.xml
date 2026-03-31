@@ -3,13 +3,19 @@
 
 <mapper namespace="dujiacun.userservice.mapper.UserMapper">
 <resultMap id="resultMap" type="dujiacun.userservice.entity.UserEntity">
-    <id property="userName" column="user_name" javaType="java.lang.String"/>
+    <id property="userId" column="user_id" javaType="java.lang.Long"/>
+    <result property="userName" column="user_name" javaType="java.lang.String"/>
     <result  property="passWord" column="pass_word" javaType="java.lang.String"/>
     <result  property="lastLoginDate" column="last_login_date" javaType="java.util.Date"/>
 </resultMap>
     <select id="getUserInfo" parameterType="dujiacun.userservice.entity.bo.UserParamBo" resultMap="resultMap">
-        SELECT user_name, pass_word, last_login_date
+        SELECT user_id,user_name, pass_word, last_login_date
         FROM user_master
         WHERE user_name = #{userParamBo.userName,jdbcType=VARCHAR}
+    </select>
+    <select id="getByUserId" parameterType="dujiacun.userservice.entity.bo.UserParamBo" resultMap="resultMap">
+        SELECT user_id,user_name, pass_word, last_login_date
+        FROM user_master
+        WHERE user_id = #{userParamBo.userId,jdbcType=BIGINT}
     </select>
 </mapper>

@@ -32,7 +32,7 @@ public class OrderController {
         OrderParamBo orderParamBo = new OrderParamBo(orderId,null,null,null,null,null);
 
         OrderInfoBo orderInfoBo = orderService.getOrderInfo(orderParamBo);
-        String url = "http://localhost:8080/user/" + orderInfoBo.getUserId();
+        String url = "http://user-service/user/" + orderInfoBo.getUserId();
 
         orderInfoBo.setUserEntity(restTemplate.getForObject(url, UserEntity.class));
 

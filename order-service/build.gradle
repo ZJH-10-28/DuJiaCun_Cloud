@@ -36,6 +36,8 @@ dependencies {
 
     //Nacos
     implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-nacos-discovery:2025.1.0.0'
+    //Nacos 负载均衡用
+    implementation 'org.springframework.cloud:spring-cloud-starter-loadbalancer'
 
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'org.postgresql:postgresql'

@@ -18,7 +18,7 @@ spring:
           predicates:
             - Path=/user/**
         - id: order-service
-          uri: http://localhost:9080
+          uri: lb://order-service
           predicates:
             - Path=/order/**
 

@@ -11,10 +11,4 @@ public class UserServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(UserServiceApplication.class, args);
     }
-
-    //发HTTP请求的工具
-    @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
-    }
 }

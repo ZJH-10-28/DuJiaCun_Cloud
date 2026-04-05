@@ -1,0 +1,115 @@
+Index: user-service/src/main/resources/application-dev.properties
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>\r\nspring.application.name=user-service\r\nserver.port=8080\r\n\r\n#PostgreSQL\r\nspring.datasource.url=jdbc:postgresql://localhost:5432/DuJiaCun_Cloud_User\r\nspring.datasource.username=postgres\r\nspring.datasource.password=root\r\nspring.datasource.driver-class-name=org.postgresql.Driver\r\n\r\nmybatis.mapper-locations= classpath:mapper/*.xml\r\n\r\n#JWT\r\napp.jwt.secret=MySuperSecretKeyForJWTAuthThatIsLongEnough32Bytes\r\napp.jwt.expiration=86400000\r\n\r\n#redis\r\nspring.data.redis.host=192.168.0.152\r\nspring.data.redis.port=6379\r\nspring.data.redis.password=root\r\nspring.redis.lettuce.pool.max-active=8\r\nspring.redis.lettuce.pool.max-idle=8\r\nspring.redis.lettuce.pool.min-idle=1\r\nspring.redis.lettuce.pool.max-wait=10s\r\n\r\n#log\r\nmybatis.configuration.log-impl=org.apache.ibatis.logging.stdout.StdOutImpl\r\n\r\n# Eureka\r\neureka.client.service-url.defaultZone=http://localhost:1234/eureka
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>ISO-8859-1
+===================================================================
+diff --git a/user-service/src/main/resources/application-dev.properties b/user-service/src/main/resources/application-dev.properties
+--- a/user-service/src/main/resources/application-dev.properties	(revision ad87dc6743193a17473a620c92d82abc99a0d585)
++++ b/user-service/src/main/resources/application-dev.properties	(date 1774971292677)
+@@ -27,4 +27,7 @@
+ mybatis.configuration.log-impl=org.apache.ibatis.logging.stdout.StdOutImpl
+ 
+ # Eureka
+-eureka.client.service-url.defaultZone=http://localhost:1234/eureka
+\ No newline at end of file
++#eureka.client.service-url.defaultZone=http://localhost:1234/eureka
++
++#Nacos
++spring.nacos.discovery.server-addr=192.168.0.152:8888
+\ No newline at end of file
+Index: order-service/src/main/resources/application-dev.properties
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>\r\nspring.application.name=order-service\r\nserver.port=9080\r\n\r\n#PostgreSQL\r\nspring.datasource.url=jdbc:postgresql://localhost:5432/DuJiaCun_Cloud_Order\r\nspring.datasource.username=postgres\r\nspring.datasource.password=root\r\nspring.datasource.driver-class-name=org.postgresql.Driver\r\n\r\nmybatis.mapper-locations= classpath:mapper/*.xml\r\n\r\n#JWT\r\napp.jwt.secret=MySuperSecretKeyForJWTAuthThatIsLongEnough32Bytes\r\napp.jwt.expiration=86400000\r\n\r\n#redis\r\nspring.data.redis.host=192.168.0.152\r\nspring.data.redis.port=6379\r\nspring.data.redis.password=root\r\nspring.redis.lettuce.pool.max-active=8\r\nspring.redis.lettuce.pool.max-idle=8\r\nspring.redis.lettuce.pool.min-idle=1\r\nspring.redis.lettuce.pool.max-wait=10s\r\n\r\n#log\r\nmybatis.configuration.log-impl=org.apache.ibatis.logging.stdout.StdOutImpl\r\n\r\n# Eureka\r\neureka.client.service-url.defaultZone=http://localhost:1234/eureka
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>ISO-8859-1
+===================================================================
+diff --git a/order-service/src/main/resources/application-dev.properties b/order-service/src/main/resources/application-dev.properties
+--- a/order-service/src/main/resources/application-dev.properties	(revision ad87dc6743193a17473a620c92d82abc99a0d585)
++++ b/order-service/src/main/resources/application-dev.properties	(date 1774971554875)
+@@ -27,4 +27,7 @@
+ mybatis.configuration.log-impl=org.apache.ibatis.logging.stdout.StdOutImpl
+ 
+ # Eureka
+-eureka.client.service-url.defaultZone=http://localhost:1234/eureka
+\ No newline at end of file
++#eureka.client.service-url.defaultZone=http://localhost:1234/eureka
++
++#Nacos
++spring.nacos.discovery.server-addr=192.168.0.152:8888
+\ No newline at end of file
+Index: user-service/build.gradle
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>plugins {\r\n    id 'java'\r\n    id 'org.springframework.boot' version '4.0.5'\r\n    id 'io.spring.dependency-management' version '1.1.7'\r\n}\r\n\r\ngroup = 'DuJiaCun'\r\nversion = '0.0.1-SNAPSHOT'\r\ndescription = 'user-service'\r\n\r\njava {\r\n    toolchain {\r\n        languageVersion = JavaLanguageVersion.of(25)\r\n    }\r\n}\r\n\r\nconfigurations {\r\n    compileOnly {\r\n        extendsFrom annotationProcessor\r\n    }\r\n}\r\n\r\nrepositories {\r\n    mavenCentral()\r\n}\r\n\r\next {\r\n    set('springCloudVersion', \"2025.1.1\")\r\n}\r\n\r\ndependencies {\r\n    implementation 'org.springframework.boot:spring-boot-starter-data-redis'\r\n    implementation 'org.springframework.boot:spring-boot-starter-webmvc'\r\n    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:4.0.1'\r\n    implementation 'org.springframework.cloud:spring-cloud-starter'\r\n\r\n    //Eureka\r\n    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'\r\n\r\n    compileOnly 'org.projectlombok:lombok'\r\n    runtimeOnly 'org.postgresql:postgresql'\r\n    annotationProcessor 'org.projectlombok:lombok'\r\n    testImplementation 'org.springframework.boot:spring-boot-starter-data-redis-test'\r\n    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'\r\n    testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:4.0.1'\r\n    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'\r\n}\r\n\r\ndependencyManagement {\r\n    imports {\r\n        mavenBom \"org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}\"\r\n    }\r\n}\r\n\r\ntasks.named('test') {\r\n    useJUnitPlatform()\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/user-service/build.gradle b/user-service/build.gradle
+--- a/user-service/build.gradle	(revision ad87dc6743193a17473a620c92d82abc99a0d585)
++++ b/user-service/build.gradle	(date 1774971782667)
+@@ -35,7 +35,13 @@
+     implementation 'org.springframework.cloud:spring-cloud-starter'
+ 
+     //Eureka
+-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
++    //implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
++
++    //Nacos
++    // 方式 A：引入 BOM (推荐，类似 Maven 的 dependencyManagement)
++    implementation platform('com.alibaba.cloud:spring-cloud-alibaba-dependencies:2023.0.1.0')
++    // 服务注册与发现
++    implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-nacos-discovery'
+ 
+     compileOnly 'org.projectlombok:lombok'
+     runtimeOnly 'org.postgresql:postgresql'
+Index: build.gradle
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>plugins {\r\n    id 'java'\r\n    id 'org.springframework.boot' version '4.0.5'\r\n    id 'io.spring.dependency-management' version '1.1.7'\r\n}\r\n\r\ngroup = 'DuJiaCun'\r\nversion = '0.0.1-SNAPSHOT'\r\ndescription = 'DuJiaCun_Cloud'\r\n\r\njava {\r\n    toolchain {\r\n        languageVersion = JavaLanguageVersion.of(25)\r\n    }\r\n}\r\n\r\nconfigurations {\r\n    compileOnly {\r\n        extendsFrom annotationProcessor\r\n    }\r\n}\r\n\r\nrepositories {\r\n    mavenCentral()\r\n}\r\n\r\next {\r\n    set('springCloudVersion', \"2025.1.1\")\r\n}\r\n\r\ndependencies {\r\n    implementation 'org.springframework.boot:spring-boot-starter-data-redis'\r\n    implementation 'org.springframework.boot:spring-boot-starter-webmvc'\r\n    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:4.0.1'\r\n    implementation 'org.springframework.cloud:spring-cloud-starter'\r\n    compileOnly 'org.projectlombok:lombok'\r\n    runtimeOnly 'org.postgresql:postgresql'\r\n    annotationProcessor 'org.projectlombok:lombok'\r\n    testImplementation 'org.springframework.boot:spring-boot-starter-data-redis-test'\r\n    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'\r\n    testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:4.0.1'\r\n    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'\r\n}\r\n\r\ndependencyManagement {\r\n    imports {\r\n        mavenBom \"org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}\"\r\n    }\r\n}\r\n\r\ntasks.named('test') {\r\n    useJUnitPlatform()\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/build.gradle b/build.gradle
+--- a/build.gradle	(revision ad87dc6743193a17473a620c92d82abc99a0d585)
++++ b/build.gradle	(date 1774971099977)
+@@ -33,6 +33,12 @@
+     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:4.0.1'
+     implementation 'org.springframework.cloud:spring-cloud-starter'
++
++    //Nacos
++    // 引入 Spring Cloud Alibaba 的依赖平台，用于版本对齐
++    // 注意：请根据你的 Spring Cloud 和 Spring Boot 版本选择合适的 SCA 版本
++    implementation platform('com.alibaba.cloud:spring-cloud-alibaba-dependencies:2023.0.1.0')
++
+     compileOnly 'org.projectlombok:lombok'
+     runtimeOnly 'org.postgresql:postgresql'
+     annotationProcessor 'org.projectlombok:lombok'
+Index: order-service/build.gradle
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>plugins {\r\n    id 'java'\r\n    id 'org.springframework.boot' version '4.0.5'\r\n    id 'io.spring.dependency-management' version '1.1.7'\r\n}\r\n\r\ngroup = 'DuJiaCun'\r\nversion = '0.0.1-SNAPSHOT'\r\ndescription = 'order-service'\r\n\r\njava {\r\n    toolchain {\r\n        languageVersion = JavaLanguageVersion.of(25)\r\n    }\r\n}\r\n\r\nconfigurations {\r\n    compileOnly {\r\n        extendsFrom annotationProcessor\r\n    }\r\n}\r\n\r\nrepositories {\r\n    mavenCentral()\r\n}\r\n\r\next {\r\n    set('springCloudVersion', \"2025.1.1\")\r\n}\r\n\r\ndependencies {\r\n    implementation 'org.springframework.boot:spring-boot-starter-data-redis'\r\n    implementation 'org.springframework.boot:spring-boot-starter-webmvc'\r\n    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:4.0.1'\r\n    implementation 'org.springframework.cloud:spring-cloud-starter'\r\n\r\n    //Eureka\r\n    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'\r\n\r\n    compileOnly 'org.projectlombok:lombok'\r\n    runtimeOnly 'org.postgresql:postgresql'\r\n    annotationProcessor 'org.projectlombok:lombok'\r\n    testImplementation 'org.springframework.boot:spring-boot-starter-data-redis-test'\r\n    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'\r\n    testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:4.0.1'\r\n    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'\r\n}\r\n\r\ndependencyManagement {\r\n    imports {\r\n        mavenBom \"org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}\"\r\n    }\r\n}\r\n\r\ntasks.named('test') {\r\n    useJUnitPlatform()\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/order-service/build.gradle b/order-service/build.gradle
+--- a/order-service/build.gradle	(revision ad87dc6743193a17473a620c92d82abc99a0d585)
++++ b/order-service/build.gradle	(date 1774971798274)
+@@ -35,7 +35,13 @@
+     implementation 'org.springframework.cloud:spring-cloud-starter'
+ 
+     //Eureka
+-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
++    //implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
++
++    //Nacos
++    // 方式 A：引入 BOM (推荐，类似 Maven 的 dependencyManagement)
++    implementation platform('com.alibaba.cloud:spring-cloud-alibaba-dependencies:2023.0.1.0')
++    // 服务注册与发现
++    implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-nacos-discovery'
+ 
+     compileOnly 'org.projectlombok:lombok'
+     runtimeOnly 'org.postgresql:postgresql'

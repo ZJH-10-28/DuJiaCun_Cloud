@@ -1,10 +1,9 @@
 package dujiacun.orderservice.service;
 
-import dujiacun.orderservice.entity.UserEntity;
 import dujiacun.orderservice.entity.bo.OrderInfoBo;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
-import dujiacun.orderservice.entity.dto.OrderResponseDto;
 import dujiacun.orderservice.mapper.OrderMapper;
+import dujiacun.orderservice.openFeign.userClient;
 import dujiacun.orderservice.util.BeanConvertUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,13 +18,27 @@ public class OrderServiceImpl implements IOrderService {
     @Autowired
     RestTemplate restTemplate;
 
+//    @Override
+//    public OrderInfoBo getOrderInfo(OrderParamBo orderParamBo) {
+//        OrderInfoBo orderInfoBo = BeanConvertUtil.convert(orderMapper.getOrderInfo(orderParamBo),OrderInfoBo.class);
+//        String url = "http://user-service/user/" + orderInfoBo.getUserId();
+//        orderInfoBo.setUserEntity(restTemplate.getForObject(url, UserEntity.class));
+//        return orderInfoBo;
+//    }
+
+
+    //使用openFeign
+    @Autowired
+    private userClient userClient;
+
     @Override
     public OrderInfoBo getOrderInfo(OrderParamBo orderParamBo) {
         OrderInfoBo orderInfoBo = BeanConvertUtil.convert(orderMapper.getOrderInfo(orderParamBo),OrderInfoBo.class);
 
-        String url = "http://user-service/user/" + orderInfoBo.getUserId();
-
-        orderInfoBo.setUserEntity(restTemplate.getForObject(url, UserEntity.class));
+        orderInfoBo.setUserEntity(userClient.getUser(orderInfoBo.getUserId()));
         return orderInfoBo;
     }
+
+
+
 }

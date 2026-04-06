@@ -14,7 +14,7 @@ spring:
           enabled: true
       routes:
         - id: user-service
-          uri: lb://user-service
+          uri: lb://user-service # lb:// 格式需要 LoadBalancer 支持
           predicates:
             - Path=/user/**
         - id: order-service

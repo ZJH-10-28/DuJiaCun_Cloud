@@ -18,9 +18,6 @@ public class OrderController {
     @Autowired
     private IOrderService orderService;
 
-    @Autowired
-    RestTemplate restTemplate;
-
     @PostMapping("/getOrderInfo")
     public OrderResponseDto getOrderInfo(@RequestBody OrderRequestDto orderRequestDto) {
         OrderParamBo orderParamBo = BeanConvertUtil.convert(orderRequestDto, OrderParamBo.class);
@@ -30,12 +27,6 @@ public class OrderController {
     @GetMapping("/{orderId}")
     public OrderResponseDto getOrderInfo(@PathVariable Long orderId) {
         OrderParamBo orderParamBo = new OrderParamBo(orderId,null,null,null,null,null);
-
-        OrderInfoBo orderInfoBo = orderService.getOrderInfo(orderParamBo);
-        String url = "http://user-service/user/" + orderInfoBo.getUserId();
-
-        orderInfoBo.setUserEntity(restTemplate.getForObject(url, UserEntity.class));
-
-        return BeanConvertUtil.convert(orderInfoBo, OrderResponseDto.class);
+        return BeanConvertUtil.convert(orderService.getOrderInfo(orderParamBo), OrderResponseDto.class);
     }
 }

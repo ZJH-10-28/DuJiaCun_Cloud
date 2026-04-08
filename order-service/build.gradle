@@ -6,12 +6,24 @@ plugins {
 
 
 dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    //postgresql
+    runtimeOnly 'org.postgresql:postgresql'
+
+    //mybatis
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
+    testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.3'
 
     //Nacos
     implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-nacos-discovery'
     //Nacos 负载均衡用
     implementation 'org.springframework.cloud:spring-cloud-starter-loadbalancer'
+
     //openFigen
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    //本地Figen
+    implementation project(':feignClient')
 
 }

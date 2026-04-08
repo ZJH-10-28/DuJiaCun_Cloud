@@ -1,7 +1,5 @@
 package dujiacun.orderservice.controller;
 
-import dujiacun.orderservice.entity.UserEntity;
-import dujiacun.orderservice.entity.bo.OrderInfoBo;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
 import dujiacun.orderservice.entity.dto.OrderRequestDto;
 import dujiacun.orderservice.entity.dto.OrderResponseDto;
@@ -9,7 +7,6 @@ import dujiacun.orderservice.service.IOrderService;
 import dujiacun.orderservice.util.BeanConvertUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 
 @RestController
 @RequestMapping("/order")

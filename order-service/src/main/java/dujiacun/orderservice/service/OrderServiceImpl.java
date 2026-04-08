@@ -1,9 +1,9 @@
 package dujiacun.orderservice.service;
 
+import dujiacun.feignclient.openFeign.UserClient;
 import dujiacun.orderservice.entity.bo.OrderInfoBo;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
 import dujiacun.orderservice.mapper.OrderMapper;
-import dujiacun.orderservice.openFeign.userClient;
 import dujiacun.orderservice.util.BeanConvertUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,7 +29,7 @@ public class OrderServiceImpl implements IOrderService {
 
     //使用openFeign
     @Autowired
-    private userClient userClient;
+    private UserClient userClient;
 
     @Override
     public OrderInfoBo getOrderInfo(OrderParamBo orderParamBo) {

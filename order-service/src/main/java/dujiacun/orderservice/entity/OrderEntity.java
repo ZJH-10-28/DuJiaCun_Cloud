@@ -1,5 +1,6 @@
 package dujiacun.orderservice.entity;
 
+import dujiacun.feignclient.entity.UserEntity;
 import lombok.Data;
 
 import java.util.Date;

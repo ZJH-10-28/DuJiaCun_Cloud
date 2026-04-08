@@ -22,9 +22,9 @@ spring:
           predicates:
             - Path=/order/**
 
-logging:
-  level:
-    org.springframework.cloud.gateway: TRACE
-    org.springframework.cloud.gateway.route.RouteDefinitionRouteLocator: TRACE
-    org.springframework.cloud.gateway.handler.RoutePredicateHandlerMapping: TRACE
-    org.springframework.web.reactive: DEBUG
+#logging:
+#  level:
+#    org.springframework.cloud.gateway: TRACE
+#    org.springframework.cloud.gateway.route.RouteDefinitionRouteLocator: TRACE
+#    org.springframework.cloud.gateway.handler.RoutePredicateHandlerMapping: TRACE
+#    org.springframework.web.reactive: DEBUG

@@ -1,6 +1,6 @@
 package dujiacun.orderservice.entity.dto;
 
-import dujiacun.orderservice.entity.UserEntity;
+import dujiacun.feignclient.entity.UserEntity;
 import lombok.Data;
 
 @Data

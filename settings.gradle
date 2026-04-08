@@ -1,1 +1,11 @@
+
+pluginManagement {
+    repositories {
+        gradlePluginPortal()   // 包含 Spring Boot 插件
+        mavenCentral()
+    }
+}
+
 rootProject.name = 'DuJiaCun_Cloud'
+include 'order-service'
+include 'user-service'

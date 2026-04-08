@@ -1,7 +1,18 @@
+//插件管理模块
+//apply false：在根项目中声明但不应用，子项目需要时再应用
 plugins {
+    //打包可执行的 JAR/WAR 文件
+    //自动配置 Spring Boot 应用
+    //提供 Spring Boot 特有的构建任务
     id 'org.springframework.boot' version '3.3.4' apply false
+
+    //自动管理依赖版本
+    //避免版本冲突
+    //简化依赖声明
     id 'io.spring.dependency-management' version '1.1.7' apply false
 }
+
+//全局项目配置模块
 allprojects {
 
     group = 'DuJiaCun'
@@ -9,28 +20,41 @@ allprojects {
     description = 'DuJiaCun_Cloud'
 
     repositories {
+        //Maven 中央仓库--定义项目依赖的下载源
         mavenCentral()
+        //国内镜像仓库
+        //maven { url 'https://maven.aliyun.com/repository/public' }
     }
 }
 
+//子项目配置模块
 subprojects {
-
+    //插件应用
     apply plugin: 'java'
     apply plugin: 'org.springframework.boot'
     apply plugin: 'io.spring.dependency-management'
 
+    //指定 Java 版本要求
     java {
         toolchain {
             languageVersion = JavaLanguageVersion.of(21)
         }
     }
 
+    //定义全局版本常量
     ext {
         set('springBootVersion', "3.3.4")
         set('springCloudVersion', "2023.0.3")
         set('springCloudAlibabaVersion', "2023.0.1.0")
     }
 
+    /*
+    implementation：编译和运行时依赖
+    compileOnly：仅编译时依赖
+    annotationProcessor：注解处理器依赖
+    testImplementation：测试依赖
+    测试运行时依赖
+    */
     dependencies {
         implementation 'org.springframework.cloud:spring-cloud-starter'
         implementation 'org.springframework.boot:spring-boot-starter'
@@ -44,17 +68,27 @@ subprojects {
 
     dependencyManagement {
         imports {
+            /*
+            导入 BOM
+                统一管理相关依赖的版本
+                避免版本冲突
+                简化依赖声明
+            */
             mavenBom "org.springframework.boot:spring-boot-dependencies:${springBootVersion}"
             mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
             mavenBom "com.alibaba.cloud:spring-cloud-alibaba-dependencies:${springCloudAlibabaVersion}"
         }
     }
 
+    //测试配置
     tasks.named('test') {
+        //使用 JUnit 5 测试平台
         useJUnitPlatform()
     }
 
+    //配置继承
     configurations {
+        //让 compileOnly 继承 annotationProcessor 的依赖
         compileOnly {
             extendsFrom annotationProcessor
         }

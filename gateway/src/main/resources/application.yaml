@@ -3,20 +3,24 @@ server:
 
 spring:
   application:
-    name: gateway
+    name: gateway # 服务名称
+
   cloud:
     nacos:
       discovery:
-        server-addr: 127.0.0.1:8848
+        server-addr: 127.0.0.1:8848 # Nacos地址
+
     gateway:
       discovery:
         locator:
-          enabled: true
-      routes:
+          enabled: true # 开启网关
+
+      routes: # 网关路由配置
         - id: user-service
-          uri: lb://user-service # lb:// 格式需要 LoadBalancer 支持
-          predicates:
-            - Path=/user/**
+          uri: lb://user-service # 路由目标地址     lb:// 格式代表 LoadBalancer 负载均衡支持
+          predicates: # 路由断言: 判断收到的请求是否符合路由的要求
+            - Path=/user/** # 路径匹配
+
         - id: order-service
           uri: lb://order-service
           predicates:

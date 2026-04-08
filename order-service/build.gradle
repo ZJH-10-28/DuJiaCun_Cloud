@@ -1,3 +1,5 @@
+//插件声明语法
+//父工程配置了子工程可以不配置,但推荐都写上
 plugins {
     id 'java'
     id 'org.springframework.boot'

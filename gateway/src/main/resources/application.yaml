@@ -25,6 +25,9 @@ spring:
           uri: lb://order-service
           predicates:
             - Path=/order/**
+      default-filters: # 默认拦截器  对所有请求有效
+        - PrefixPath=/DuJiaCun # 为所有请求添加前缀
+
 
 #logging:
 #  level:

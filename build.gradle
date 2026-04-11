@@ -59,6 +59,9 @@ subprojects {
         implementation 'org.springframework.cloud:spring-cloud-starter'
         implementation 'org.springframework.boot:spring-boot-starter'
 
+        //RabbitMQ
+        implementation 'org.springframework.boot:spring-boot-starter-amqp'
+
         compileOnly 'org.projectlombok:lombok'
         annotationProcessor 'org.projectlombok:lombok'
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

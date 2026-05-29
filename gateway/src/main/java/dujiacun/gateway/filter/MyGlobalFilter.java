@@ -27,7 +27,7 @@ public class MyGlobalFilter implements GlobalFilter {
         }
 
         //设置401状态码
-        exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.NOT_ACCEPTABLE);
+        exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.UNAUTHORIZED);
         return exchange.getResponse().setComplete();
     }
 }

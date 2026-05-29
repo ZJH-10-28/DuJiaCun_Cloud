@@ -1,5 +1,6 @@
 package dujiacun.orderservice.controller;
 
+import dujiacun.orderservice.config.OrderProperties;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
 import dujiacun.orderservice.entity.dto.OrderRequestDto;
 import dujiacun.orderservice.entity.dto.OrderResponseDto;
@@ -15,6 +16,10 @@ public class OrderController {
     @Autowired
     private IOrderService orderService;
 
+    //订单服务配置:Nacos动态配置
+    @Autowired
+    private OrderProperties orderProperties;
+
     @PostMapping("/getOrderInfo")
     public OrderResponseDto getOrderInfo(@RequestBody OrderRequestDto orderRequestDto) {
         OrderParamBo orderParamBo = BeanConvertUtil.convert(orderRequestDto, OrderParamBo.class);
@@ -25,5 +30,10 @@ public class OrderController {
     public OrderResponseDto getOrderInfo(@PathVariable Long orderId) {
         OrderParamBo orderParamBo = new OrderParamBo(orderId,null,null,null,null,null);
         return BeanConvertUtil.convert(orderService.getOrderInfo(orderParamBo), OrderResponseDto.class);
+    }
+
+    @GetMapping("/config")
+    public String getConfig() {
+        return orderProperties.getOrderId() + " - " + orderProperties.getOrderName() + " - " + orderProperties.getOrderPrice();
     }
 }

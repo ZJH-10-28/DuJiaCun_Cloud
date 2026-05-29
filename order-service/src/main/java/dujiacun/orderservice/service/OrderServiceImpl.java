@@ -14,9 +14,9 @@ public class OrderServiceImpl implements IOrderService {
 
     @Autowired
     private OrderMapper orderMapper;
-
-    @Autowired
-    RestTemplate restTemplate;
+//
+//    @Autowired
+//    RestTemplate restTemplate;
 
 //    @Override
 //    public OrderInfoBo getOrderInfo(OrderParamBo orderParamBo) {

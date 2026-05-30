@@ -7,13 +7,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import dujiacun.common.result.CommonResult;
 
+import java.nio.charset.StandardCharsets;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    @ResponseBody//将信息转换为JSON返回给前端
-    @ExceptionHandler(Exception.class)
-    public CommonResult<String> handleException(Exception e) {
-        return CommonResult.error(500, e.getMessage());
-    }
 
     @ResponseBody
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -22,14 +19,21 @@ public class GlobalExceptionHandler {
         BindingResult bindingResult = e.getBindingResult();
         String message = null;
         if (bindingResult.hasErrors()) {
-            message = bindingResult.getFieldError().getDefaultMessage();
+            message = bindingResult.getFieldError().getField() + ":" +
+                      bindingResult.getFieldError().getDefaultMessage();
         }
-        return CommonResult.error(404, message);
+        return CommonResult.error(404, "字段校验失败-->" + message);
     }
 
     @ResponseBody
     @ExceptionHandler(BusinessException.class)
     public CommonResult<String> handleBusinessException(BusinessException e) {
         return CommonResult.error(e.getMessage());
+    }
+
+    @ResponseBody//将信息转换为JSON返回给前端
+    @ExceptionHandler(Exception.class)
+    public CommonResult<String> handleException(Exception e) {
+        return CommonResult.error(500, e.getMessage());
     }
 }

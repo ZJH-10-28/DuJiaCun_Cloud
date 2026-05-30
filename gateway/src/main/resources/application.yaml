@@ -1,5 +1,5 @@
 server:
-  port: 12345
+  port: 10010
 
 spring:
   application:
@@ -8,7 +8,7 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 192.168.0.101:8848 # Nacos地址
+        server-addr: 127.0.0.1:8848 # Nacos地址
 
     gateway:
       discovery:
@@ -27,7 +27,6 @@ spring:
             - Path=/order/**
 #      default-filters: # 默认拦截器  对所有请求有效
 #        - PrefixPath=/DuJiaCun # 为所有请求添加前缀
-        #配合order-service中的(server.servlet.context-path=/DuJiaCun)一起使用
 
 
 #logging:

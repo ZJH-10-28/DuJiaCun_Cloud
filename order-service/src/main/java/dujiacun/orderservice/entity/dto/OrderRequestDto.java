@@ -2,12 +2,9 @@ package dujiacun.orderservice.entity.dto;
 
 import dujiacun.feignclient.entity.UserEntity;
 import lombok.Data;
-import jakarta.validation.constraints.NotNull;
 
 @Data
 public class OrderRequestDto {
-
-    @NotNull
     private Long orderId;
     private String orderName;
     private Double orderPrice;

@@ -31,5 +31,7 @@ dependencies {
 
     //本地Figen
     implementation project(':feignClient')
+    //common工具类
+    implementation project(':common')
 
 }

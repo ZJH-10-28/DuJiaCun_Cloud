@@ -7,7 +7,9 @@ import dujiacun.orderservice.entity.dto.OrderResponseDto;
 import dujiacun.orderservice.service.IOrderService;
 import dujiacun.orderservice.util.BeanConvertUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import spring.common.result.CommonResult;
 
 @RestController
 @RequestMapping("/order")
@@ -21,7 +23,7 @@ public class OrderController {
     private OrderProperties orderProperties;
 
     @PostMapping("/getOrderInfo")
-    public OrderResponseDto getOrderInfo(@RequestBody OrderRequestDto orderRequestDto) {
+    public OrderResponseDto getOrderInfo(@Validated @RequestBody OrderRequestDto orderRequestDto) {
         OrderParamBo orderParamBo = BeanConvertUtil.convert(orderRequestDto, OrderParamBo.class);
         return BeanConvertUtil.convert(orderService.getOrderInfo(orderParamBo), OrderResponseDto.class);
     }
@@ -33,7 +35,11 @@ public class OrderController {
     }
 
     @GetMapping("/config")
-    public String getConfig() {
-        return orderProperties.getOrderId() + " - " + orderProperties.getOrderName() + " - " + orderProperties.getOrderPrice();
+    public CommonResult<String> getConfig() {
+        return CommonResult.success(
+                orderProperties.getOrderId() +
+                        " - " + orderProperties.getOrderName() +
+                        " - " + orderProperties.getOrderPrice()
+        );
     }
 }

@@ -1,4 +1,4 @@
-package spring.common.exception;
+package dujiacun.common.exception;
 
 public class BusinessException extends RuntimeException{
     public BusinessException (String message){

@@ -1,11 +1,11 @@
-package spring.common.exception;
+package dujiacun.common.exception;
 
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import spring.common.result.CommonResult;
+import dujiacun.common.result.CommonResult;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {

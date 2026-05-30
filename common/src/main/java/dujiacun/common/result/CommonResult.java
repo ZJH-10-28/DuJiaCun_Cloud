@@ -1,4 +1,4 @@
-package spring.common.result;
+package dujiacun.common.result;
 
 import lombok.Data;
 

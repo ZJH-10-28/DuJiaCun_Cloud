@@ -1,5 +1,6 @@
 package dujiacun.common.exception;
 
+import dujiacun.common.result.ErrorCode;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,18 +23,18 @@ public class GlobalExceptionHandler {
             message = bindingResult.getFieldError().getField() + ":" +
                       bindingResult.getFieldError().getDefaultMessage();
         }
-        return CommonResult.error(404, "字段校验失败-->" + message);
+        return CommonResult.error(ErrorCode.VALIDATE_FAILED.getCode(), "参数校验失败-->" + message);
     }
 
     @ResponseBody
     @ExceptionHandler(BusinessException.class)
     public CommonResult<String> handleBusinessException(BusinessException e) {
-        return CommonResult.error(e.getMessage());
+        return CommonResult.error("业务异常:" + e.getMessage());
     }
 
     @ResponseBody//将信息转换为JSON返回给前端
     @ExceptionHandler(Exception.class)
     public CommonResult<String> handleException(Exception e) {
-        return CommonResult.error(500, e.getMessage());
+        return CommonResult.error(ErrorCode.FAILED.getCode(), e.getMessage());
     }
 }

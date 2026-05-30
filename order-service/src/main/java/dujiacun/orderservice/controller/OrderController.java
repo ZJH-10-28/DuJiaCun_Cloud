@@ -29,9 +29,11 @@ public class OrderController {
     }
 
     @GetMapping("/{orderId}")
-    public OrderResponseDto getOrderInfo(@PathVariable Long orderId) {
+    public CommonResult<OrderResponseDto> getOrderInfo(@PathVariable Long orderId) {
         OrderParamBo orderParamBo = new OrderParamBo(orderId,null,null,null,null,null);
-        return BeanConvertUtil.convert(orderService.getOrderInfo(orderParamBo), OrderResponseDto.class);
+        return CommonResult.success(
+                BeanConvertUtil.convert(orderService.getOrderInfo(orderParamBo), OrderResponseDto.class)
+        );
     }
 
     @GetMapping("/config")

@@ -17,6 +17,7 @@ pluginManagement {
 
 //引入的模块
 rootProject.name = 'DuJiaCun_Cloud'
+include 'common'
 include 'order-service'
 include 'user-service'
 include 'gateway'

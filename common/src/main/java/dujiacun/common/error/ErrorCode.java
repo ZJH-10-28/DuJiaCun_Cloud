@@ -1,4 +1,4 @@
-package dujiacun.common.result;
+package dujiacun.common.error;
 
 public enum ErrorCode {
     SUCCESS(200, "操作成功"),

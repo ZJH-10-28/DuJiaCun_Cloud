@@ -1,14 +1,12 @@
 package dujiacun.common.exception;
 
-import dujiacun.common.result.ErrorCode;
+import dujiacun.common.error.ErrorCode;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import dujiacun.common.result.CommonResult;
-
-import java.nio.charset.StandardCharsets;
+import dujiacun.common.CommonResult;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {

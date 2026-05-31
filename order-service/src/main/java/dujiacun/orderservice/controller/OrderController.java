@@ -9,7 +9,7 @@ import dujiacun.orderservice.util.BeanConvertUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import dujiacun.common.result.CommonResult;
+import dujiacun.common.CommonResult;
 
 @RestController
 @RequestMapping("/order")

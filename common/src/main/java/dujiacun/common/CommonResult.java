@@ -1,5 +1,6 @@
-package dujiacun.common.result;
+package dujiacun.common;
 
+import dujiacun.common.error.ErrorCode;
 import lombok.Data;
 
 @Data

@@ -145,7 +145,7 @@ fi
 if ! "$cygwin" && ! "$darwin" && ! "$nonstop" ; then
     case $MAX_FD in #(
       max*)
-        # In POSIX sh, ulimit -H is undefined. That's why the result is checked to see if it worked.
+        # In POSIX sh, ulimit -H is undefined. That's why the error is checked to see if it worked.
         # shellcheck disable=SC2039,SC3045
         MAX_FD=$( ulimit -H -n ) ||
             warn "Could not query maximum file descriptor limit"
@@ -153,7 +153,7 @@ if ! "$cygwin" && ! "$darwin" && ! "$nonstop" ; then
     case $MAX_FD in  #(
       '' | soft) :;; #(
       *)
-        # In POSIX sh, ulimit -n is undefined. That's why the result is checked to see if it worked.
+        # In POSIX sh, ulimit -n is undefined. That's why the error is checked to see if it worked.
         # shellcheck disable=SC2039,SC3045
         ulimit -n "$MAX_FD" ||
             warn "Could not set maximum file descriptor limit to $MAX_FD"

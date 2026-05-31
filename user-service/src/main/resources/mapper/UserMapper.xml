@@ -8,6 +8,11 @@
     <result  property="passWord" column="pass_word" javaType="java.lang.String"/>
     <result  property="lastLoginDate" column="last_login_date" javaType="java.util.Date"/>
 </resultMap>
+    <select id="getByUserName" parameterType="java.lang.String" resultMap="resultMap">
+        SELECT user_id,user_name, pass_word, last_login_date
+        FROM user_master
+        WHERE user_name = #{userName,jdbcType=VARCHAR}
+    </select>
     <select id="getUserInfo" parameterType="dujiacun.userservice.entity.bo.UserParamBo" resultMap="resultMap">
         SELECT user_id,user_name, pass_word, last_login_date
         FROM user_master

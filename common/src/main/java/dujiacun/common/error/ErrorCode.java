@@ -18,6 +18,7 @@ public enum ErrorCode {
     public long getCode() {
         return code;
     }
+
     public String getMessage() {
         return message;
     }

@@ -27,7 +27,10 @@ public class GlobalExceptionHandler {
     @ResponseBody
     @ExceptionHandler(BusinessException.class)
     public CommonResult<String> handleBusinessException(BusinessException e) {
-        return CommonResult.error("业务异常:" + e.getMessage());
+        if(e.getErrorCode() != null){
+            return CommonResult.error(e.getErrorCode());
+        }
+        return CommonResult.error(e.getMessage());
     }
 
     @ResponseBody//将信息转换为JSON返回给前端

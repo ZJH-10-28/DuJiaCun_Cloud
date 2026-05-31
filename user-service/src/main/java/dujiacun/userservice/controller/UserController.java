@@ -10,6 +10,8 @@ import dujiacun.userservice.entity.dto.UserResponseDto;
 import dujiacun.userservice.service.IUserService;
 import dujiacun.userservice.util.BeanConvertUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -23,6 +25,9 @@ public class UserController {
     @Autowired
     private IUserService userService;
 
+    @Value("${sa-token.token-prefix}")
+    private String TOKEN_HEADER;
+
     @PostMapping("/login")
     public CommonResult<Map<String, String>> login (@RequestBody UserRequestDto userRequestDto) {
         SaTokenInfo saTokenInfo = userService.login(userRequestDto.getUserName(),userRequestDto.getPassWord());
@@ -31,7 +36,8 @@ public class UserController {
         }
         Map<String, String> tokenMap = new HashMap<>();
         tokenMap.put("token", saTokenInfo.getTokenValue());
-        tokenMap.put("tokenHead", SysConstant.TOKEN_HEADER);
+//        tokenMap.put("tokenHeader", SysConstant.TOKEN_HEADER);
+        tokenMap.put("tokenHeader", TOKEN_HEADER);
         return CommonResult.success(tokenMap);
     }
 

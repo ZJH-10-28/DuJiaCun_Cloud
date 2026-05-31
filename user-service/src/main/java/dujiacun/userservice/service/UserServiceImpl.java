@@ -3,6 +3,7 @@ package dujiacun.userservice.service;
 import ch.qos.logback.core.util.StringUtil;
 import cn.dev33.satoken.stp.SaTokenInfo;
 import cn.dev33.satoken.stp.StpUtil;
+import dujiacun.common.constant.SysConstant;
 import dujiacun.common.exception.BusinessException;
 import dujiacun.userservice.entity.UserEntity;
 import dujiacun.userservice.entity.bo.UserInfoBo;
@@ -49,6 +50,9 @@ public class UserServiceImpl implements IUserService {
 
         //satoken核心API 根据用户ID生成token
         StpUtil.login(userEntity.getUserId());
+
+        //保存用户信息到session
+        StpUtil.getSession().set(SysConstant.USER_INFO, userEntity);
 
         return StpUtil.getTokenInfo();
     }

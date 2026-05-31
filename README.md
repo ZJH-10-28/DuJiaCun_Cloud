@@ -35,8 +35,25 @@ DuJiaCun_Cloud
     //Bootstrap 支持（用于加载 bootstrap.yml）
     implementation 'org.springframework.cloud:spring-cloud-starter-bootstrap'
 
-#### Nacos动态配置
-    必须用在配置类的属性上,需注册为Bean (例:@Component)
+## Nacos config 动态配置
+1.想使用Nacos动态配置的服务,都需要配置bootstrap.yaml文件
+
+    实际生效逻辑：
+        后加载的配置覆盖先加载的配置，而Nacos配置的加载顺序被设计为逻辑上“晚于”本地配置，因此优先级更高
+    Nacos会按环境特异性从低到高加载配置：
+        user-service.yaml（共享配置） → user-service-dev.yaml（环境专属配置）
+    在Nacos配置中心正常工作时，
+        user-service-dev.yaml中的同名配置会覆盖本地application-dev.yaml
+
+2.引入 服务发现 和 配置中心
+
+    implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-nacos-discovery'
+    implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-nacos-config'
+    //Bootstrap 支持（用于加载 bootstrap.yml）
+    implementation 'org.springframework.cloud:spring-cloud-starter-bootstrap'
+
+3.想使用动态字段的 @Value 所在的类上需要加 @RefreshScope
+    或者 将配置类注册为Bean (例:@Component)
 
 ``` java
 //创建配置类

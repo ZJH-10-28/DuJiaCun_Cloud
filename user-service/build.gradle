@@ -17,12 +17,16 @@ dependencies {
 
     //Nacos
     implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-nacos-discovery'
+    //Nacos 配置中心
+    implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-nacos-config'
 
     //Sa-Token
     implementation 'cn.dev33:sa-token-spring-boot3-starter:1.44.0'
 
     //openFigen
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+    //Bootstrap 支持（用于加载 bootstrap.yml）
+    implementation 'org.springframework.cloud:spring-cloud-starter-bootstrap'
 
     //本地Figen
     implementation project(':feignClient')

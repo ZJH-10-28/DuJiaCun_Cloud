@@ -19,7 +19,8 @@ public class CorsConfig {
         config.addAllowedOriginPattern("http://localhost:4200");  // 允许的路径
         config.addAllowedMethod("GET");                     // 允许的请求方法
         config.addAllowedMethod("POST");
-        config.addAllowedMethod("OPTIONS");
+        config.addAllowedMethod("OPTIONS");                 // 允许预检请求
+
         config.addAllowedHeader("Authorization");           // 允许的请求头
         config.addAllowedHeader("X-Requested-With");
         config.addAllowedHeader("Content-Type");

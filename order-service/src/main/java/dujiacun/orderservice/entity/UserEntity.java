@@ -1,4 +1,4 @@
-package dujiacun.feignclient.entity;
+package dujiacun.orderservice.entity;
 
 import lombok.Data;
 

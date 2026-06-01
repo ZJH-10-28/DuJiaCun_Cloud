@@ -29,8 +29,6 @@ dependencies {
     //openFigen
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 
-    //本地Figen
-    implementation project(':feignClient')
     //common工具类
     implementation project(':common')
 

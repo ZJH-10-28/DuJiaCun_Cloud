@@ -1,7 +1,7 @@
 package dujiacun.orderservice;
 
 import dujiacun.common.CommonResult;
-import dujiacun.feignclient.openFeign.UserClient;
+import dujiacun.orderservice.service.feignClient.FeignUserClient;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
@@ -11,7 +11,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
         OrderServiceApplication.class,
         CommonResult.class
 })
-@EnableFeignClients(clients = {UserClient.class})
+@EnableFeignClients(clients = {FeignUserClient.class})
 @EnableDiscoveryClient
 public class OrderServiceApplication {
 

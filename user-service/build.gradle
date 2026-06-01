@@ -28,8 +28,6 @@ dependencies {
     //Bootstrap 支持（用于加载 bootstrap.yml）
     implementation 'org.springframework.cloud:spring-cloud-starter-bootstrap'
 
-    //本地Figen
-    implementation project(':feignClient')
     //common工具类
     implementation project(':common')
 

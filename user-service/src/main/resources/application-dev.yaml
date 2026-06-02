@@ -1,28 +1,34 @@
 spring:
   application:
     name: user-service
-#  cloud:
-#    nacos:
+  cloud:
+    nacos:
 #      discovery:
 #        server-addr: 192.168.0.101:8848
-#        cluster-name: SY
+        cluster-name: SY
+    openfeign:
+      client:
+        config:
+          default:
+              connect-timeout: 3000
+              read-timeout: 10000
   datasource:
     url: jdbc:postgresql://localhost:5432/DuJiaCun_Cloud_User
     username: postgres
     password: root
     driver-class-name: org.postgresql.Driver
-#  data:
-#    redis:
-#      host: 192.168.0.152
-#      port: 6379
-#      password: root
-#  redis:
-#    lettuce:
-#      pool:
-#        max-active: 8
-#        max-idle: 8
-#        min-idle: 1
-#        max-wait: 10s
+  data:
+    redis:
+      host: 192.168.0.152
+      port: 6379
+      password: root
+  redis:
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 1
+        max-wait: 10s
 
 server:
   port: 8080

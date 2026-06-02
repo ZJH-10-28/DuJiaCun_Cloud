@@ -1,5 +1,6 @@
 package dujiacun.orderservice.service.impl;
 
+import dujiacun.common.exception.BusinessException;
 import dujiacun.orderservice.entity.bo.OrderInfoBo;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
 import dujiacun.orderservice.mapper.OrderMapper;
@@ -14,18 +15,6 @@ public class OrderServiceImpl implements IOrderService {
 
     @Autowired
     private OrderMapper orderMapper;
-//
-//    @Autowired
-//    RestTemplate restTemplate;
-
-//    @Override
-//    public OrderInfoBo getOrderInfo(OrderParamBo orderParamBo) {
-//        OrderInfoBo orderInfoBo = BeanConvertUtil.convert(orderMapper.getOrderInfo(orderParamBo),OrderInfoBo.class);
-//        String url = "http://user-service/user/" + orderInfoBo.getUserId();
-//        orderInfoBo.setUserEntity(restTemplate.getForObject(url, UserEntity.class));
-//        return orderInfoBo;
-//    }
-
 
     //使用openFeign
     @Autowired
@@ -35,7 +24,11 @@ public class OrderServiceImpl implements IOrderService {
     public OrderInfoBo getOrderInfo(OrderParamBo orderParamBo) {
         OrderInfoBo orderInfoBo = BeanConvertUtil.convert(orderMapper.getOrderInfo(orderParamBo),OrderInfoBo.class);
 
-        orderInfoBo.setUserEntity(userClient.getUser(orderInfoBo.getUserId()));
+        try {
+            orderInfoBo.setUserEntity(userClient.getUser(orderInfoBo.getUserId()));
+        } catch (Exception e) {
+            throw new BusinessException("超时");
+        }
         return orderInfoBo;
     }
 

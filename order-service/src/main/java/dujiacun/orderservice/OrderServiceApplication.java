@@ -19,10 +19,4 @@ public class OrderServiceApplication {
         SpringApplication.run(OrderServiceApplication.class, args);
     }
 
-//    //发HTTP请求的工具
-//    @Bean
-//    @LoadBalanced // 开启负载均衡支持 否则通过user-service 找不到端口号
-//    public RestTemplate restTemplate() {
-//        return new RestTemplate();
-//    }
 }

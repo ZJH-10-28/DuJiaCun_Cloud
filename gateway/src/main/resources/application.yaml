@@ -9,11 +9,11 @@ spring:
     nacos:
       discovery:
         server-addr: 192.168.0.101:8848 # Nacos地址
-        enabled: true
+        enabled: true # 开启服务发现
     loadbalancer:
       configurations: default
       retry:
-        enabled: true # 重试
+        enabled: true # 开启重试
 
     gateway:
       discovery:

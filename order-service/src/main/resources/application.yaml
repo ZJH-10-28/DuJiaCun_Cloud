@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: order-service
+  cloud:
+    nacos:
+#      discovery:
+#        server-addr: 192.168.0.101:8848
+        cluster-name: SY
+    loadbalancer:
+      retry:
+        enabled: false # 控制负载均衡的重试功能
+      nacos:
+        enabled: true # Nacos 特有的负载均衡配置 , 关闭变成 Spring Cloud LoadBalancer 的默认策略
+    openfeign:
+      client:
+        config:
+          default: #全局默认设置
+              connect-timeout: 5000
+              read-timeout: 3000
+  datasource:
+    url: jdbc:postgresql://localhost:5432/DuJiaCun_Cloud_Order
+    username: postgres
+    password: root
+    driver-class-name: org.postgresql.Driver
+  data:
+    redis:
+      host: 192.168.0.152
+      port: 6379
+      password: root
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 1
+          max-wait: 10s
+
+server:
+  port: 9080
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+app:
+  jwt:
+    secret: MySuperSecretKeyForJWTAuthThatIsLongEnough32Bytes
+    expiration: 86400000

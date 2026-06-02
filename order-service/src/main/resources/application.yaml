@@ -8,7 +8,7 @@ spring:
         cluster-name: SY
     loadbalancer:
       retry:
-        enabled: false # 控制负载均衡的重试功能
+        enabled: false # 控制负载均衡的重试功能 :存在多个健康的实例时,会触发一次重试
       nacos:
         enabled: true # Nacos 特有的负载均衡配置 , 关闭变成 Spring Cloud LoadBalancer 的默认策略
     openfeign:

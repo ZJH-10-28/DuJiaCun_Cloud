@@ -29,6 +29,9 @@ dependencies {
     //openFigen
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 
+    //Seata
+    implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-seata'
+
     //common工具类
     implementation project(':common')
 

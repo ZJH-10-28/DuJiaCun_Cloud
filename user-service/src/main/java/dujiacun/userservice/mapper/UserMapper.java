@@ -11,5 +11,7 @@ public interface UserMapper {
 
     UserEntity getUserInfo(@Param("userParamBo") UserParamBo userParamBo);
 
+    int setUserInfo(@Param("userParamBo") UserParamBo userParamBo);
+
     UserEntity getByUserId(@Param("userParamBo") UserParamBo userParamBo);
 }

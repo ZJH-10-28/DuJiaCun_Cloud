@@ -27,12 +27,12 @@ spring:
         - id: user-service
           uri: lb://user-service # 路由目标地址     lb:// 格式代表 LoadBalancer 负载均衡支持
           predicates: # 路由断言: 判断收到的请求是否符合路由的要求
-            - Path=/user/** # 路径匹配
+            - Path=/users/** # 路径匹配
 
         - id: order-service
           uri: lb://order-service
           predicates:
-            - Path=/order/**
+            - Path=/orders/**
 #      default-filters: # 默认拦截器  对所有请求有效
 #        - PrefixPath=/DuJiaCun # 为所有请求添加前缀
         #配合order-service中的(server.servlet.context-path=/DuJiaCun)一起使用

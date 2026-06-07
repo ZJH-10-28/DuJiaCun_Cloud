@@ -4,6 +4,7 @@ import ch.qos.logback.core.util.StringUtil;
 import cn.dev33.satoken.stp.SaTokenInfo;
 import cn.dev33.satoken.stp.StpUtil;
 import dujiacun.common.constant.SysConstant;
+import dujiacun.common.constant.UserTokenConstant;
 import dujiacun.common.exception.BusinessException;
 import dujiacun.userservice.entity.UserEntity;
 import dujiacun.userservice.entity.bo.UserInfoBo;
@@ -12,6 +13,7 @@ import dujiacun.userservice.entity.dto.UserResponseDto;
 import dujiacun.userservice.mapper.UserMapper;
 import dujiacun.userservice.util.BeanConvertUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -21,9 +23,17 @@ public class UserServiceImpl implements IUserService {
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
     @Override
     public UserInfoBo getUserInfo(UserParamBo userParamBo) {
         return BeanConvertUtil.convert(userMapper.getUserInfo(userParamBo), UserInfoBo.class);
+    }
+
+    @Override
+    public int setUserInfo(UserParamBo userParamBo) {
+        return userMapper.setUserInfo(userParamBo);
     }
 
     @Override
@@ -51,8 +61,12 @@ public class UserServiceImpl implements IUserService {
         //satoken核心API 根据用户ID生成token
         StpUtil.login(userEntity.getUserId());
 
-        //保存用户信息到session
-        StpUtil.getSession().set(SysConstant.USER_INFO, userEntity);
+        UserTokenConstant userTokenConstant = new UserTokenConstant();
+        userTokenConstant.setUserId(userEntity.getUserId());
+        userTokenConstant.setUserName(userEntity.getUserName());
+        userTokenConstant.setIsAdmin(0);
+
+        redisTemplate.opsForValue().set("USER_TOKEN:" + StpUtil.getTokenValue(), userTokenConstant);
 
         return StpUtil.getTokenInfo();
     }

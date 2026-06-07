@@ -46,3 +46,16 @@ app:
   jwt:
     secret: MySuperSecretKeyForJWTAuthThatIsLongEnough32Bytes
     expiration: 86400000
+seata:
+  enable-auto-data-source-proxy: true
+  store-mode: db
+  tx-service-group: default_tx_group
+  service:
+    vgroup-mapping:
+      default_tx_group: default
+    grouplist:
+      default: 127.0.0.1:8091
+  registry:
+    type: file
+  config:
+    type: file

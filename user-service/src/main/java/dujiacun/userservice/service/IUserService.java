@@ -7,6 +7,8 @@ import dujiacun.userservice.entity.bo.UserParamBo;
 public interface IUserService {
     UserInfoBo getUserInfo(UserParamBo userParamBo);
 
+    int setUserInfo(UserParamBo userParamBo);
+
     UserInfoBo getByUserId(UserParamBo userParamBo);
 
     SaTokenInfo login(String userName, String passWord);

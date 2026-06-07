@@ -1,28 +1,40 @@
 package dujiacun.orderservice.entity.bo;
 
-import dujiacun.orderservice.entity.UserEntity;
 import lombok.Data;
+import java.util.List;
 
 @Data
-
 public class OrderParamBo {
+
+    /**
+     * 订单ID
+     */
     private Long orderId;
-    private String orderName;
-    private Double orderPrice;
-    private Integer orderNum;
+
+    /**
+     * 用户ID
+     */
     private Long userId;
-    private UserEntity userEntity;
 
-    public OrderParamBo(){};
+    /**
+     * 优惠券ID
+     */
+    private Long couponId;
 
-    public OrderParamBo(Long orderId, String orderName, Double orderPrice,Integer orderNum,Long userId,UserEntity userEntity) {
-        this.orderId = orderId;
-        this.orderName = orderName;
-        this.orderPrice = orderPrice;
-        this.orderNum = orderNum;
-        this.userId = userId;
-        this.userEntity = userEntity;
-    }
+    /**
+     * 商品列表ID
+     */
+    private List<Long> skuIdList;
+
+    /**
+     * 商品数量
+     */
+    private Integer skuNum;
+
+    /**
+     * 订单总价
+     */
+    private Double orderPrice;
 }
 
 

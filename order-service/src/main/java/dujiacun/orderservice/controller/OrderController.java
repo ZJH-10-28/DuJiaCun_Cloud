@@ -10,9 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import dujiacun.common.CommonResult;
+import java.util.List;
 
 @RestController
-@RequestMapping("/order")
+@RequestMapping("/orders")
 public class OrderController {
 
     @Autowired
@@ -22,7 +23,14 @@ public class OrderController {
     @Autowired
     private OrderProperties orderProperties;
 
-    @PostMapping("/getOrderInfo")
+    @PostMapping("/orderInfo")
+    public CommonResult<List<Long>> createOrder(@Validated @RequestBody OrderRequestDto orderRequestDto) {
+        OrderParamBo orderParamBo = BeanConvertUtil.convert(orderRequestDto, OrderParamBo.class);
+        List<Long> orderList = orderService.createOrder(orderParamBo.getUserId(), orderParamBo);
+        return CommonResult.success(orderList);
+    }
+
+    @GetMapping("/orderInfo")
     public CommonResult<OrderResponseDto> getOrderInfo(@Validated @RequestBody OrderRequestDto orderRequestDto) {
         OrderParamBo orderParamBo = BeanConvertUtil.convert(orderRequestDto, OrderParamBo.class);
         return CommonResult.success(
@@ -32,7 +40,8 @@ public class OrderController {
 
     @GetMapping("/{orderId}")
     public CommonResult<OrderResponseDto> getOrderInfo(@PathVariable Long orderId) {
-        OrderParamBo orderParamBo = new OrderParamBo(orderId,null,null,null,null,null);
+        OrderParamBo orderParamBo = new OrderParamBo();
+        orderParamBo.setOrderId(orderId);
         return CommonResult.success(
                 BeanConvertUtil.convert(orderService.getOrderInfo(orderParamBo), OrderResponseDto.class)
         );

@@ -11,4 +11,10 @@ dependencies {
     // Validation（如果需要验证注解）
     //选要使用 (id 'java-library') 才能使用 api 进行依赖传递
     api 'org.springframework.boot:spring-boot-starter-validation'
+    //RabbitMQ
+    api 'org.springframework.boot:spring-boot-starter-amqp'
+    //resdis
+    api 'org.springframework.boot:spring-boot-starter-data-redis'
+    //openFigen
+    api 'org.springframework.cloud:spring-cloud-starter-openfeign'
 }

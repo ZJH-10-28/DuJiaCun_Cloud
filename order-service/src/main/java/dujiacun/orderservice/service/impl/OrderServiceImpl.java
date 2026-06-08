@@ -1,6 +1,7 @@
 package dujiacun.orderservice.service.impl;
 
 import dujiacun.common.exception.BusinessException;
+import dujiacun.orderservice.entity.OrderEntity;
 import dujiacun.orderservice.entity.UserEntity;
 import dujiacun.orderservice.entity.bo.OrderInfoBo;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
@@ -49,20 +50,7 @@ public class OrderServiceImpl implements IOrderService {
     @Override
 //    @Async("orderTaskExecutor") // 指定线程池
     public OrderInfoBo getOrderInfo(OrderParamBo orderParamBo) {
-        OrderInfoBo orderInfoBo = BeanConvertUtil.convert(orderMapper.getOrderInfo(orderParamBo),OrderInfoBo.class);
-
-//        try {
-//            orderInfoBo.setUserEntity(userClient.getUser(orderInfoBo.getUserId()));
-//        } catch (Exception e) {
-//            throw new BusinessException("超时");
-//        }
-        return orderInfoBo;
+        return  BeanConvertUtil.convert(orderMapper.getOrderInfo(orderParamBo),OrderInfoBo.class);
     }
-
-//    @GlobalTransactional
-//    public UserEntity createOrder(Long number, OrderParamBo orderParamBo) {
-//        return userClient.getUser(number);
-//    }
-
 
 }

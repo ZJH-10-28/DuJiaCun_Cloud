@@ -4,14 +4,14 @@
 <mapper namespace="dujiacun.orderservice.mapper.OrderMapper">
 <resultMap id="resultMap" type="dujiacun.orderservice.entity.OrderEntity">
     <id property="orderId" column="order_id" javaType="java.lang.Long"/>
-    <result  property="orderName" column="order_name" javaType="java.lang.String"/>
-    <result  property="orderPrice" column="order_price" javaType="java.lang.Double"/>
-    <result  property="orderNum" column="order_num" javaType="java.lang.Integer"/>
     <result  property="userId" column="user_id" javaType="java.lang.Long"/>
+    <result  property="orderPrice" column="order_price" javaType="java.lang.Double"/>
+    <result  property="createTime" column="create_time" javaType="java.util.Date"/>
 </resultMap>
+
     <select id="getOrderInfo" parameterType="dujiacun.orderservice.entity.bo.OrderParamBo" resultMap="resultMap">
-        SELECT order_id, order_name, order_price,order_num,user_id
-        FROM order_master
+        SELECT order_id, user_id, order_price, create_time
+        FROM order_info
         WHERE order_id = #{orderParamBo.orderId,jdbcType=BIGINT}
     </select>
 </mapper>

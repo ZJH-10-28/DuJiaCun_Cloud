@@ -9,15 +9,12 @@ import java.util.Map;
 
 @Data
 public class OrderEntity {
+
     private Long orderId;
 
     private Long userId;
 
-    private Long couponId;
-
-    private Long skuId;
-
-    private Integer skuNum;
-
     private Double orderPrice;
+
+    private Date createTime;
 }

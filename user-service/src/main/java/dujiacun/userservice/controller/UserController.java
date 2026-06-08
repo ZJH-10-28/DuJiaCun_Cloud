@@ -27,18 +27,13 @@ public class UserController {
     @Autowired
     private IUserService userService;
 
-    @Value("${sa-token.token-prefix}")
-    private String TOKEN_HEADER;
-
     @PostMapping("/login")
     public CommonResult<Map<String, String>> login (@RequestBody UserRequestDto userRequestDto) {
-        SaTokenInfo saTokenInfo = userService.login(userRequestDto.getUserName(),userRequestDto.getPassWord());
-        if (saTokenInfo == null){
+        Map<String, String> tokenMap = userService.login(userRequestDto.getUserName(),userRequestDto.getPassWord());
+        if (tokenMap == null){
             return CommonResult.error(ErrorCode.VALIDATE_FAILED);
         }
-        Map<String, String> tokenMap = new HashMap<>();
-        tokenMap.put("token", saTokenInfo.getTokenValue());
-        tokenMap.put("tokenHeader", TOKEN_HEADER);
+
         return CommonResult.success(tokenMap);
     }
 

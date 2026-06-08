@@ -1,27 +1,31 @@
 package dujiacun.userservice.service;
 
 import ch.qos.logback.core.util.StringUtil;
-import cn.dev33.satoken.stp.SaTokenInfo;
 import cn.dev33.satoken.stp.StpUtil;
-import dujiacun.common.constant.SysConstant;
 import dujiacun.common.constant.UserTokenConstant;
 import dujiacun.common.exception.BusinessException;
 import dujiacun.userservice.entity.UserEntity;
 import dujiacun.userservice.entity.bo.UserInfoBo;
 import dujiacun.userservice.entity.bo.UserParamBo;
-import dujiacun.userservice.entity.dto.UserResponseDto;
 import dujiacun.userservice.mapper.UserMapper;
 import dujiacun.userservice.util.BeanConvertUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class UserServiceImpl implements IUserService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Value("${sa-token.token-prefix}")
+    private String TOKEN_HEADER;
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
@@ -42,7 +46,8 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public SaTokenInfo login(String userName, String passWord) {
+    public Map<String, String> login(String userName, String passWord) {
+
 
         if(StringUtil.isNullOrEmpty(userName) || StringUtil.isNullOrEmpty(passWord)){
             throw new BusinessException("用户名或密码不能为空");
@@ -66,8 +71,14 @@ public class UserServiceImpl implements IUserService {
         userTokenConstant.setUserName(userEntity.getUserName());
         userTokenConstant.setIsAdmin(0);
 
-        redisTemplate.opsForValue().set("USER_TOKEN:" + StpUtil.getTokenValue(), userTokenConstant);
+        //向redis存token
+        redisTemplate.opsForValue().set("USER_TOKEN:" + TOKEN_HEADER + " " + StpUtil.getTokenValue(), userTokenConstant,30, TimeUnit.MINUTES);
 
-        return StpUtil.getTokenInfo();
+        //将token返回给前端
+        Map<String, String> tokenMap = new HashMap<>();
+        tokenMap.put("token", StpUtil.getTokenValue());
+        tokenMap.put("tokenHeader", TOKEN_HEADER);
+
+        return tokenMap;
     }
 }

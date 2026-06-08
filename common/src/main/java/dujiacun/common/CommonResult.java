@@ -28,6 +28,9 @@ public class CommonResult<T> {
     public static <T> CommonResult<T> success(String message) {
         return new CommonResult<T>(ErrorCode.SUCCESS.getCode(), message, null);
     }
+    public static <T> CommonResult<T> success(String message,T data) {
+        return new CommonResult<T>(ErrorCode.SUCCESS.getCode(), message, data);
+    }
 
 
 

@@ -48,6 +48,7 @@ public class OrderController {
             return CommonResult.error("检索不到相关内容");
         }
         return CommonResult.success(
+                "检索成功",
                 BeanConvertUtil.convert(orderService.getOrderInfo(orderParamBo), OrderResponseDto.class)
         );
     }

@@ -1,5 +1,6 @@
 package dujiacun.orderservice.controller;
 
+import dujiacun.common.error.ErrorCode;
 import dujiacun.orderservice.config.OrderProperties;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
 import dujiacun.orderservice.entity.dto.OrderRequestDto;
@@ -42,6 +43,10 @@ public class OrderController {
     public CommonResult<OrderResponseDto> getOrderInfo(@PathVariable Long orderId) {
         OrderParamBo orderParamBo = new OrderParamBo();
         orderParamBo.setOrderId(orderId);
+        OrderResponseDto orderResponseDto = BeanConvertUtil.convert(orderService.getOrderInfo(orderParamBo), OrderResponseDto.class);
+        if (orderResponseDto == null){
+            return CommonResult.error("检索不到相关内容");
+        }
         return CommonResult.success(
                 BeanConvertUtil.convert(orderService.getOrderInfo(orderParamBo), OrderResponseDto.class)
         );

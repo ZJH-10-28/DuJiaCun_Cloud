@@ -1,3 +1,5 @@
 spring:
   application:
     name: common
+jwt:
+  SECRET_KEY_STRING: "mySuperSecretKeyForHS256AlgorithmShouldBeAtLeast256BitsLong!"

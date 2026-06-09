@@ -11,4 +11,6 @@ dependencies {
     implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-nacos-discovery'
     //Nacos 负载均衡用
     implementation 'org.springframework.cloud:spring-cloud-starter-loadbalancer'
+    //common工具类
+    implementation project(':common')
 }

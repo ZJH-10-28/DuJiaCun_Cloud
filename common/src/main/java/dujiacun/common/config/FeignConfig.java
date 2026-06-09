@@ -17,8 +17,10 @@ public class FeignConfig implements RequestInterceptor {
         }
         HttpServletRequest request = attributes.getRequest();
         String token = request.getHeader("Authorization");
-        if (token != null) {
+        String userId = request.getHeader("userId");
+        if (token != null && userId != null) {
             requestTemplate.header("Authorization", token);
+            requestTemplate.header("userId", userId);
         }
     }
 }

@@ -1,6 +1,5 @@
 package dujiacun.userservice.service;
 
-import cn.dev33.satoken.stp.SaTokenInfo;
 import dujiacun.userservice.entity.bo.UserInfoBo;
 import dujiacun.userservice.entity.bo.UserParamBo;
 

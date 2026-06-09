@@ -2,6 +2,8 @@ server:
   port: 12345
 
 spring:
+  main:
+    web-application-type: reactive # 因为引入common模块内有spring-boot-starter-web
   application:
     name: gateway # 服务名称
 
@@ -36,6 +38,7 @@ spring:
 #      default-filters: # 默认拦截器  对所有请求有效
 #        - PrefixPath=/DuJiaCun # 为所有请求添加前缀
         #配合order-service中的(server.servlet.context-path=/DuJiaCun)一起使用
+
 
 
 #logging:

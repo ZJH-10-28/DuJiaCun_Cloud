@@ -1,9 +1,8 @@
 package dujiacun.userservice.service;
 
 import ch.qos.logback.core.util.StringUtil;
-import cn.dev33.satoken.stp.StpUtil;
-import dujiacun.common.constant.UserTokenConstant;
 import dujiacun.common.exception.BusinessException;
+import dujiacun.common.util.JwtUtil;
 import dujiacun.userservice.entity.UserEntity;
 import dujiacun.userservice.entity.bo.UserInfoBo;
 import dujiacun.userservice.entity.bo.UserParamBo;
@@ -63,20 +62,20 @@ public class UserServiceImpl implements IUserService {
             throw new BusinessException("密码错误");
         }
 
-        //satoken核心API 根据用户ID生成token
-        StpUtil.login(userEntity.getUserId());
+        //生成JWT
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", userEntity.getUserId());
+        claims.put("userName", userEntity.getUserName());
+        claims.put("isAdmin", 0);
 
-        UserTokenConstant userTokenConstant = new UserTokenConstant();
-        userTokenConstant.setUserId(userEntity.getUserId());
-        userTokenConstant.setUserName(userEntity.getUserName());
-        userTokenConstant.setIsAdmin(0);
-
-        //向redis存token
-        redisTemplate.opsForValue().set("USER_TOKEN:" + TOKEN_HEADER + " " + StpUtil.getTokenValue(), userTokenConstant,30, TimeUnit.MINUTES);
+        String token = JwtUtil.generateToken(
+                userEntity.getUserId().toString(),
+                claims,
+                30 * 60 * 1000);
 
         //将token返回给前端
         Map<String, String> tokenMap = new HashMap<>();
-        tokenMap.put("token", StpUtil.getTokenValue());
+        tokenMap.put("token", token);
         tokenMap.put("tokenHeader", TOKEN_HEADER);
 
         return tokenMap;

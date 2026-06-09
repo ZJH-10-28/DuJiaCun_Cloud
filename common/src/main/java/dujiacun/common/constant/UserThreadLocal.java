@@ -2,14 +2,14 @@ package dujiacun.common.constant;
 
 public class UserThreadLocal {
 
-    private static final ThreadLocal<UserTokenConstant> USER_TOKEN_THREAD_LOCAL = new ThreadLocal<>();
+    private static final ThreadLocal<String> USER_TOKEN_THREAD_LOCAL = new ThreadLocal<>();
 
-    public static UserTokenConstant getUser(){
+    public static String getUser(){
         return USER_TOKEN_THREAD_LOCAL.get();
     }
 
-    public static void setUser(UserTokenConstant userTokenConstant){
-        USER_TOKEN_THREAD_LOCAL.set(userTokenConstant);
+    public static void setUser(String userId){
+        USER_TOKEN_THREAD_LOCAL.set(userId);
     }
 
     public static void removeUser(){

@@ -1,8 +1,6 @@
 package dujiacun.userservice.controller;
 
-import cn.dev33.satoken.stp.SaTokenInfo;
 import dujiacun.common.CommonResult;
-import dujiacun.common.constant.SysConstant;
 import dujiacun.common.error.ErrorCode;
 import dujiacun.userservice.entity.UserEntity;
 import dujiacun.userservice.entity.bo.UserParamBo;
@@ -10,13 +8,8 @@ import dujiacun.userservice.entity.dto.UserRequestDto;
 import dujiacun.userservice.entity.dto.UserResponseDto;
 import dujiacun.userservice.service.IUserService;
 import dujiacun.userservice.util.BeanConvertUtil;
-import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
 import java.util.Map;
 
 

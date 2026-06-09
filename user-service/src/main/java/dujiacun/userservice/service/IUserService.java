@@ -12,5 +12,5 @@ public interface IUserService {
 
     UserInfoBo getByUserId(UserParamBo userParamBo);
 
-    Map<String, String> login(String userName, String passWord);
+    Map<String, Object> login(String userName, String passWord);
 }

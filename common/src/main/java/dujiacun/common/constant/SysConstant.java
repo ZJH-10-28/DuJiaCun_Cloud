@@ -1,5 +1,7 @@
 package dujiacun.common.constant;
 
+import org.springframework.beans.factory.annotation.Value;
+
 public interface SysConstant {
     /**
      * token请求头名称
@@ -7,7 +9,41 @@ public interface SysConstant {
     String TOKEN_HEADER = "Bearer ";
 
     /**
+     * token参数名称
+     */
+    String STR_TOKEN = "token";
+
+    /**
+     * token请求头名称
+     */
+    String STR_TOKEN_HEADER = "tokenHeader";
+
+    /**
      * session中存储的用户信息
      */
-    String USER_INFO = "userInfo";
+    String STR_USER_INFO = "userInfo";
+
+    /**
+     * session中存储的用户ID
+     */
+    String STR_USER_ID = "userId";
+
+    /**
+     * session中存储的用户名称
+     */
+    String STR_USER_NAME = "userName";
+
+    /**
+     * session中存储的isAdmin
+     */
+    String STR_IS_ADMIN = "isAdmin";
+    /**
+     * 管理员
+     */
+    Integer IS_ADMIN = 1;
+
+    /**
+     * 普通用户
+     */
+    Integer IS_USER = 0;
 }

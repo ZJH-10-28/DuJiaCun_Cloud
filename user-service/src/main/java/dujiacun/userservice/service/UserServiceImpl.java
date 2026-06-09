@@ -15,16 +15,14 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+
+import static dujiacun.common.constant.SysConstant.*;
 
 @Service
 public class UserServiceImpl implements IUserService {
 
     @Autowired
     private UserMapper userMapper;
-
-    @Value("${sa-token.token-prefix}")
-    private String TOKEN_HEADER;
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
@@ -45,7 +43,7 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public Map<String, String> login(String userName, String passWord) {
+    public Map<String, Object> login(String userName, String passWord) {
 
 
         if(StringUtil.isNullOrEmpty(userName) || StringUtil.isNullOrEmpty(passWord)){
@@ -64,9 +62,9 @@ public class UserServiceImpl implements IUserService {
 
         //生成JWT
         Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userEntity.getUserId());
-        claims.put("userName", userEntity.getUserName());
-        claims.put("isAdmin", 0);
+        claims.put(STR_USER_ID, userEntity.getUserId());
+        claims.put(STR_USER_NAME, userEntity.getUserName());
+        claims.put(STR_IS_ADMIN, userEntity.getIsAdmin());
 
         String token = JwtUtil.generateToken(
                 userEntity.getUserId().toString(),
@@ -74,9 +72,10 @@ public class UserServiceImpl implements IUserService {
                 30 * 60 * 1000);
 
         //将token返回给前端
-        Map<String, String> tokenMap = new HashMap<>();
-        tokenMap.put("token", token);
-        tokenMap.put("tokenHeader", TOKEN_HEADER);
+        Map<String, Object> tokenMap = new HashMap<>();
+        tokenMap.put(STR_TOKEN, token);
+        tokenMap.put(STR_TOKEN_HEADER, TOKEN_HEADER);
+        tokenMap.put(STR_IS_ADMIN, userEntity.getIsAdmin());
 
         return tokenMap;
     }

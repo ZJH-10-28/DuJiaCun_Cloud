@@ -21,8 +21,8 @@ public class UserController {
     private IUserService userService;
 
     @PostMapping("/login")
-    public CommonResult<Map<String, String>> login (@RequestBody UserRequestDto userRequestDto) {
-        Map<String, String> tokenMap = userService.login(userRequestDto.getUserName(),userRequestDto.getPassWord());
+    public CommonResult<Map<String, Object>> login (@RequestBody UserRequestDto userRequestDto) {
+        Map<String, Object> tokenMap = userService.login(userRequestDto.getUserName(),userRequestDto.getPassWord());
         if (tokenMap == null){
             return CommonResult.error(ErrorCode.VALIDATE_FAILED);
         }

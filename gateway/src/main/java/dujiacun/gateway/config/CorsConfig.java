@@ -22,7 +22,7 @@ public class CorsConfig {
         config.addAllowedMethod("OPTIONS");                 // 允许预检请求
 
         config.addAllowedHeader("Authorization");           // 允许的请求头
-        config.addAllowedHeader("X-Requested-With");
+        config.addAllowedHeader("isAdmin");
         config.addAllowedHeader("Content-Type");
         config.setAllowCredentials(true);                   // 允许携带凭证
         config.setMaxAge(3600L);                            // 设置预检请求缓存时间 1小时

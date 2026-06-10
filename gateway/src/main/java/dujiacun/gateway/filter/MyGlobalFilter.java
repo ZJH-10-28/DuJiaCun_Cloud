@@ -2,9 +2,11 @@ package dujiacun.gateway.filter;
 
 import dujiacun.common.util.JwtUtil;
 import org.apache.http.HttpHeaders;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.annotation.Order;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -19,8 +21,14 @@ import static dujiacun.common.constant.SysConstant.*;
 @Order(1)
 @Component
 public class MyGlobalFilter implements GlobalFilter {
+
+
+    @Autowired
+    private RedisTemplate redisTemplate;
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+
 
         String path = exchange.getRequest().getURI().getPath();
         if (path.startsWith("/users/login") || path.startsWith("/users/register")) {
@@ -29,12 +37,18 @@ public class MyGlobalFilter implements GlobalFilter {
 
         //获取上下文请求
         String authHeader  = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        //黑名单校验
+        if(redisTemplate.opsForValue().get(STR_BLACK_TOKEN + authHeader) != null){
+            //设置401状态码
+            exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.UNAUTHORIZED);
+            return exchange.getResponse().setComplete();
+        }
 
         //判断请求头是否正确
         if (!(authHeader != null && authHeader.startsWith(TOKEN_HEADER))){
             //设置401状态码
             exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.UNAUTHORIZED);
-            return chain.filter(exchange);
+            return exchange.getResponse().setComplete();
         }
         String token = authHeader.substring(7);
 
@@ -43,7 +57,7 @@ public class MyGlobalFilter implements GlobalFilter {
         if(!"dujiacun".equals(name)){
             //设置401状态码
             exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.UNAUTHORIZED);
-            return chain.filter(exchange);
+            return exchange.getResponse().setComplete();
         }
 
         //JWT校验
@@ -79,16 +93,17 @@ public class MyGlobalFilter implements GlobalFilter {
                 else {
                     //设置403状态码
                     exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FORBIDDEN);
+                    return exchange.getResponse().setComplete();
                 }
             }
             exchange.getRequest().mutate().header(STR_USER_ID, claims.getSubject());
 
-            return chain.filter(exchange);
         } catch (Throwable t) {
             //设置401状态码
             exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.UNAUTHORIZED);
+            return exchange.getResponse().setComplete();
         }
 
-        return exchange.getResponse().setComplete();
+        return chain.filter(exchange);
     }
 }

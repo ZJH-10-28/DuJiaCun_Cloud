@@ -13,5 +13,5 @@ public interface UserMapper {
 
     int setUserInfo(@Param("userParamBo") UserParamBo userParamBo);
 
-    UserEntity getByUserId(@Param("userParamBo") UserParamBo userParamBo);
+    UserEntity getByUserId(@Param("userId") Long userId);
 }

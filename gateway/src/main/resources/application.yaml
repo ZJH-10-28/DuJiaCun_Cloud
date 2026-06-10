@@ -38,7 +38,11 @@ spring:
 #      default-filters: # 默认拦截器  对所有请求有效
 #        - PrefixPath=/DuJiaCun # 为所有请求添加前缀
         #配合order-service中的(server.servlet.context-path=/DuJiaCun)一起使用
-
+  data:
+    redis:
+      host: 192.168.0.152
+      port: 6379
+      password: root
 
 
 #logging:

@@ -8,14 +8,7 @@ public class UserParamBo {
     private Long userId;
     private String userName;
     private String passWord;
+    private Integer isAdmin;
     private Date lastLoginDate;
 
-    public UserParamBo(){};
-
-    public UserParamBo(Long userId, String userName,String passWord,Date lastLoginDate) {
-        this.userId = userId;
-        this.userName = userName;
-        this.passWord = passWord;
-        this.lastLoginDate = lastLoginDate;
-    }
 }

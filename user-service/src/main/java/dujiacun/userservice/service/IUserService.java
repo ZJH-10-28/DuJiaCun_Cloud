@@ -10,7 +10,7 @@ public interface IUserService {
 
     int setUserInfo(UserParamBo userParamBo);
 
-    UserInfoBo getByUserId(UserParamBo userParamBo);
+    UserInfoBo getByUserId(Long userId);
 
     Map<String, Object> login(String userName, String passWord);
 }

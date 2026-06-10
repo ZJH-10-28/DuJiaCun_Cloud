@@ -34,12 +34,17 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public int setUserInfo(UserParamBo userParamBo) {
+        UserEntity userEntity = userMapper.getByUserId(userParamBo.getUserId());
+        if (userEntity != null) {
+            throw new BusinessException("用户已存在");
+        }
+        userParamBo.setIsAdmin(IS_USER);
         return userMapper.setUserInfo(userParamBo);
     }
 
     @Override
-    public UserInfoBo getByUserId(UserParamBo userParamBo) {
-        return BeanConvertUtil.convert(userMapper.getByUserId(userParamBo), UserInfoBo.class);
+    public UserInfoBo getByUserId(Long userId) {
+        return BeanConvertUtil.convert(userMapper.getByUserId(userId), UserInfoBo.class);
     }
 
     @Override

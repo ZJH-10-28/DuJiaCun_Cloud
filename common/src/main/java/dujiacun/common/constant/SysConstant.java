@@ -46,4 +46,9 @@ public interface SysConstant {
      * 普通用户
      */
     Integer IS_USER = 0;
+
+    /**
+     * 黑名单token
+     */
+    String STR_BLACK_TOKEN = "blackToken:";
 }

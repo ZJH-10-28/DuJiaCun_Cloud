@@ -9,6 +9,7 @@ import dujiacun.userservice.entity.dto.UserResponseDto;
 import dujiacun.userservice.service.IUserService;
 import dujiacun.userservice.util.BeanConvertUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
@@ -28,6 +29,18 @@ public class UserController {
         }
 
         return CommonResult.success(tokenMap);
+    }
+
+    @PostMapping("/register")
+    public CommonResult register(@RequestBody @Validated UserRequestDto userRequestDto) {
+        UserParamBo userParamBo = BeanConvertUtil.convert(userRequestDto, UserParamBo.class);
+
+        //向用户订单表中插入订单ID
+        int isInsert = userService.setUserInfo(userParamBo);
+        if (isInsert <= 0){
+            return CommonResult.error(ErrorCode.FAILED);
+        }
+        return CommonResult.success("新用户创建成功");
     }
 
     @PostMapping("/userInfo")
@@ -50,7 +63,7 @@ public class UserController {
 
     @GetMapping("/{userId}")
     public UserEntity getByUserId(@PathVariable Long userId) {
-        UserParamBo userParamBo = new UserParamBo(userId,null,null,null);
-        return BeanConvertUtil.convert(userService.getByUserId(userParamBo), UserEntity.class);
+        return BeanConvertUtil.convert(userService.getByUserId(userId), UserEntity.class);
     }
+
 }

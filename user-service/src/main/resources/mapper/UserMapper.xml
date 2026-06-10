@@ -19,10 +19,10 @@
         FROM user_master
         WHERE user_name = #{userParamBo.userName,jdbcType=VARCHAR}
     </select>
-    <select id="getByUserId" parameterType="dujiacun.userservice.entity.bo.UserParamBo" resultMap="resultMap">
+    <select id="getByUserId" parameterType="java.lang.Long" resultMap="resultMap">
         SELECT user_id,user_name, pass_word, is_admin,last_login_date
         FROM user_master
-        WHERE user_id = #{userParamBo.userId,jdbcType=BIGINT}
+        WHERE user_id = #{userId,jdbcType=BIGINT}
     </select>
     <insert id="setUserInfo" parameterType="dujiacun.userservice.entity.bo.UserParamBo">
         INSERT INTO

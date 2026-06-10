@@ -35,6 +35,11 @@ spring:
           uri: lb://order-service
           predicates:
             - Path=/orders/**
+
+        - id: sku-service
+          uri: lb://sku-service
+          predicates:
+            - Path=/skus/**
 #      default-filters: # 默认拦截器  对所有请求有效
 #        - PrefixPath=/DuJiaCun # 为所有请求添加前缀
         #配合order-service中的(server.servlet.context-path=/DuJiaCun)一起使用

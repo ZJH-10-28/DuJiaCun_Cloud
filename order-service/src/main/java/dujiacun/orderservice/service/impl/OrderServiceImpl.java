@@ -6,9 +6,11 @@ import dujiacun.orderservice.entity.bo.OrderInfoBo;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
 import dujiacun.orderservice.mapper.OrderMapper;
 import dujiacun.orderservice.service.IOrderService;
+import dujiacun.orderservice.service.feignClient.FeignSkuClient;
 import dujiacun.orderservice.service.feignClient.FeignUserClient;
 import io.seata.spring.annotation.GlobalTransactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -20,9 +22,15 @@ public class OrderServiceImpl implements IOrderService {
     @Autowired
     private OrderMapper orderMapper;
 
+    @Autowired
+    private RedisTemplate redisTemplate;
+
     //使用openFeign
     @Autowired
     private FeignUserClient userClient;
+
+    @Autowired
+    private FeignSkuClient skuClient;
 
     @GlobalTransactional
     public List<Long> createOrder(Long userId , OrderParamBo orderParamBo) {
@@ -30,6 +38,7 @@ public class OrderServiceImpl implements IOrderService {
         //锁库存
         for (Long skuId : orderParamBo.getSkuIdList()) {
             //TODO 锁库存
+            skuClient.saleSkuInfo(skuId,orderParamBo.getSkuNum());
         }
 
         //创建订单

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dujiacun.skuservice.mapper.SkuMapper">
+    <resultMap id="resultMap" type="dujiacun.skuservice.entity.SkuEntity">
+        <id property="skuId" column="sku_id" javaType="java.lang.Long"/>
+        <result property="skuName" column="sku_name" javaType="java.lang.String"/>
+        <result  property="skuDescription" column="sku_description" javaType="java.lang.String"/>
+        <result  property="categoryId" column="category_id" javaType="java.lang.Integer"/>
+        <result  property="skuPrice" column="sku_price" javaType="java.lang.Double"/>
+        <result  property="saleCount" column="sale_count" javaType="java.lang.Integer"/>
+        <result  property="skuStockCount" column="sku_stock_count" javaType="java.lang.Integer"/>
+        <result  property="skuStatus" column="sku_status" javaType="java.lang.Integer"/>
+        <result  property="createTime" column="create_time" javaType="java.util.Date"/>
+        <result  property="createUser" column="create_user" javaType="java.lang.Long"/>
+        <result  property="updateTime" column="update_time" javaType="java.util.Date"/>
+        <result  property="updateUser" column="update_user" javaType="java.lang.Long"/>
+        <result  property="isDeleted" column="is_deleted" javaType="java.lang.Integer"/>
+    </resultMap>
+
+    <select id="getSkuInfo" parameterType="dujiacun.skuservice.entity.SkuParamBo" resultMap="resultMap">
+        SELECT
+            sku_id,sku_name, sku_description, category_id, sku_price,
+            sale_count, sku_stock_count
+        FROM sku_master
+        WHERE is_deleted = 0
+        <if test="skuParamBo.skuId != null">
+            AND sku_id = #{skuParamBo.skuId,jdbcType=BIGINT}
+        </if>
+        <if test="skuParamBo.skuName != null">
+            AND sku_name = #{skuParamBo.skuName,jdbcType=VARCHAR}
+        </if>
+        <if test="skuParamBo.categoryId != null">
+            AND category_id = #{skuParamBo.categoryId,jdbcType=INTEGER}
+        </if>
+        <if test="skuParamBo.saleCount != null">
+            ORDER BY sale_count DESC
+        </if>
+    </select>
+
+    <select id="getBySkuId" parameterType="java.lang.Long" resultMap="resultMap">
+        SELECT
+            sku_id,sku_name, sku_description, category_id, sku_price,
+            sale_count, sku_stock_count
+        FROM sku_master
+        WHERE sku_id = #{skuId,jdbcType=BIGINT}
+        AND sku_status = 1
+        AND is_deleted = 0
+    </select>
+
+    <insert id="insertSkuInfo" parameterType="dujiacun.skuservice.entity.SkuParamBo">
+        INSERT INTO
+            sku_master
+            (sku_id,sku_name, sku_description, category_id, sku_price,
+            sale_count, sku_stock_count, sku_status, create_time, create_user,
+            is_deleted )
+        VALUES(
+            #{skuParamBo.skuId,jdbcType=BIGINT},
+            #{skuParamBo.skuName,jdbcType=VARCHAR},
+            #{skuParamBo.skuDescription,jdbcType=VARCHAR},
+            #{skuParamBo.categoryId,jdbcType=INTEGER},
+            #{skuParamBo.skuPrice,jdbcType=DOUBLE},
+            #{skuParamBo.saleCount,jdbcType=INTEGER},
+            #{skuParamBo.skuStockCount,jdbcType=INTEGER},
+            #{skuParamBo.skuStatus,jdbcType=INTEGER},
+            CURRENT_DATE,
+            #{skuParamBo.createUser,jdbcType=BIGINT},
+            0
+        )
+    </insert>
+
+    <update id="updateSkuInfo" parameterType="dujiacun.skuservice.entity.SkuParamBo">
+        UPDATE
+            sku_master
+        SET
+            sku_name = #{skuParamBo.skuName,jdbcType=VARCHAR},
+            sku_description = #{skuParamBo.skuDescription,jdbcType=VARCHAR},
+            category_id = #{skuParamBo.categoryId,jdbcType=INTEGER},
+            sku_price = #{skuParamBo.skuPrice,jdbcType=DOUBLE},
+            sale_count = #{skuParamBo.saleCount,jdbcType=INTEGER},
+            sku_stock_count = #{skuParamBo.skuStockCount,jdbcType=INTEGER},
+            sku_status = #{skuParamBo.skuStatus,jdbcType=INTEGER},
+            update_time = CURRENT_DATE,
+            update_user = #{skuParamBo.updateUser,jdbcType=BIGINT}
+        WHERE
+            sku_id = #{skuParamBo.skuId,jdbcType=BIGINT}
+    </update>
+
+    <update id="saleSkuInfo">
+        UPDATE
+            sku_master
+        SET
+            sku_stock_count = sku_stock_count - #{saleCount,jdbcType=INTEGER},
+            sale_count = sale_count + #{saleCount,jdbcType=INTEGER}
+        WHERE
+            sku_id = #{skuId,jdbcType=BIGINT}
+        AND sku_stock_count >= #{saleCount,jdbcType=INTEGER}
+    </update>
+
+    <update id="deleteSkuInfo" parameterType="java.lang.Long">
+        UPDATE
+            sku_master
+        SET
+            is_deleted = 1
+        WHERE
+            sku_id = #{skuId,jdbcType=BIGINT}
+    </update>
+
+</mapper>

@@ -2,10 +2,6 @@ spring:
   application:
     name: order-service
   cloud:
-    nacos:
-#      discovery:
-#        server-addr: 192.168.0.101:8848
-        cluster-name: SY
     loadbalancer:
       retry:
         enabled: false # 控制负载均衡的重试功能 :存在多个健康的实例时,会触发一次重试
@@ -42,10 +38,6 @@ mybatis:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
-app:
-  jwt:
-    secret: MySuperSecretKeyForJWTAuthThatIsLongEnough32Bytes
-    expiration: 86400000
 seata:
   enable-auto-data-source-proxy: true
   store-mode: db

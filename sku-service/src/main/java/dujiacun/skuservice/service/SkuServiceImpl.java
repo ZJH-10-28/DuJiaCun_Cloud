@@ -1,0 +1,74 @@
+package dujiacun.skuservice.service;
+
+import dujiacun.common.CommonResult;
+import dujiacun.common.error.ErrorCode;
+import dujiacun.common.util.BeanConvertUtil;
+import dujiacun.skuservice.entity.SkuEntity;
+import dujiacun.skuservice.entity.SkuParamBo;
+import dujiacun.skuservice.entity.SkuResponseDto;
+import dujiacun.skuservice.mapper.SkuMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class SkuServiceImpl implements ISkuService{
+
+    @Autowired
+    private SkuMapper skuMapper;
+    @Override
+    public CommonResult<List<SkuResponseDto>> getSkuInfo(SkuParamBo skuParamBo) {
+        List<SkuResponseDto> list = new ArrayList<>();
+        for (SkuEntity skuEntity : skuMapper.getSkuInfo(skuParamBo)){
+            list.add(BeanConvertUtil.convert(skuEntity, SkuResponseDto.class));
+        }
+
+        if(list.size() <= 0){
+            return CommonResult.error(ErrorCode.FAILED.getCode(), "检索不到商品");
+        }
+        return CommonResult.success("检索完成",list);
+    }
+
+    @Override
+    public SkuEntity getBySkuId(Long skuId) {
+        return skuMapper.getBySkuId(skuId);
+    }
+
+    @Override
+    public CommonResult<String> insertSkuInfo(SkuParamBo skuParamBo) {
+        int result = skuMapper.insertSkuInfo(skuParamBo);
+        if(result <= 0){
+            return CommonResult.error(ErrorCode.FAILED.getCode(), "新增失败");
+        }
+        return CommonResult.success("新增成功");
+    }
+
+    @Override
+    public CommonResult<String> updateSkuInfo(SkuParamBo skuParamBo) {
+        int result = skuMapper.updateSkuInfo(skuParamBo);
+        if(result <= 0){
+            return CommonResult.error(ErrorCode.FAILED.getCode(), "更新失败");
+        }
+        return CommonResult.success("更新成功");
+    }
+
+    @Override
+    public CommonResult<String> saleSkuInfo(Long skuId, Integer saleCount) {
+        int result = skuMapper.saleSkuInfo(skuId,saleCount);
+        if(result <= 0){
+            return CommonResult.error(ErrorCode.FAILED.getCode(), "库存扣减失败");
+        }
+        return CommonResult.success("库存扣减成功");
+    }
+
+    @Override
+    public CommonResult<String> deleteSkuInfo(Long skuId) {
+        int result = skuMapper.deleteSkuInfo(skuId);
+        if(result <= 0){
+            return CommonResult.error(ErrorCode.FAILED.getCode(), "商品删除失败");
+        }
+        return CommonResult.success("商品删除成功");
+    }
+}

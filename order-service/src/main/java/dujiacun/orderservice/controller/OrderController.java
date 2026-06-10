@@ -1,12 +1,11 @@
 package dujiacun.orderservice.controller;
 
-import dujiacun.common.error.ErrorCode;
+import dujiacun.common.util.BeanConvertUtil;
 import dujiacun.orderservice.config.OrderProperties;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
 import dujiacun.orderservice.entity.dto.OrderRequestDto;
 import dujiacun.orderservice.entity.dto.OrderResponseDto;
 import dujiacun.orderservice.service.IOrderService;
-import dujiacun.orderservice.util.BeanConvertUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;

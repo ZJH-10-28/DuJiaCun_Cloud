@@ -2,14 +2,13 @@ package dujiacun.userservice.service;
 
 import ch.qos.logback.core.util.StringUtil;
 import dujiacun.common.exception.BusinessException;
+import dujiacun.common.util.BeanConvertUtil;
 import dujiacun.common.util.JwtUtil;
 import dujiacun.userservice.entity.UserEntity;
 import dujiacun.userservice.entity.bo.UserInfoBo;
 import dujiacun.userservice.entity.bo.UserParamBo;
 import dujiacun.userservice.mapper.UserMapper;
-import dujiacun.userservice.util.BeanConvertUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 

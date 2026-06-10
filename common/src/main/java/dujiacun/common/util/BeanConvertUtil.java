@@ -1,4 +1,4 @@
-package dujiacun.userservice.util;
+package dujiacun.common.util;
 import org.springframework.beans.BeanUtils;
 import org.springframework.util.ObjectUtils;
 

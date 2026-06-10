@@ -2,12 +2,12 @@ package dujiacun.userservice.controller;
 
 import dujiacun.common.CommonResult;
 import dujiacun.common.error.ErrorCode;
+import dujiacun.common.util.BeanConvertUtil;
 import dujiacun.userservice.entity.UserEntity;
 import dujiacun.userservice.entity.bo.UserParamBo;
 import dujiacun.userservice.entity.dto.UserRequestDto;
 import dujiacun.userservice.entity.dto.UserResponseDto;
 import dujiacun.userservice.service.IUserService;
-import dujiacun.userservice.util.BeanConvertUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;

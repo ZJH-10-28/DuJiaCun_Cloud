@@ -25,6 +25,17 @@ public class SkuController {
         return CommonResult.success(list);
     }
 
+    @GetMapping("/skuInfoById")
+    public CommonResult<SkuResponseDto> getSkuInfoById(Long skuId) {
+        SkuResponseDto skuResponseDto = BeanConvertUtil.convert(
+                skuService.getSkuInfoById(skuId),SkuResponseDto.class);
+        return CommonResult.success(skuResponseDto);
+    }
+    @GetMapping("/skuStockById")
+    public CommonResult<Integer> getSkuStockCountById(Long skuId) {
+        return skuService.getSkuStockCountById(skuId);
+    }
+
     @PostMapping("/newSkuInfo")
     public CommonResult<String> insertSkuInfo(SkuRequestDto skuRequestDto) {
         SkuParamBo skuParamBo = BeanConvertUtil.convert(skuRequestDto, SkuParamBo.class);

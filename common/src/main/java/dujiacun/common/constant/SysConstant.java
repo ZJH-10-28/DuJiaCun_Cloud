@@ -51,4 +51,14 @@ public interface SysConstant {
      * 黑名单token
      */
     String STR_BLACK_TOKEN = "blackToken:";
+
+    /**
+     * 商品锁
+     */
+    String SKU_LOCK_KEY = "lock:sku:";
+
+    /**
+     * 商品信息
+     */
+    String STR_SKU = "sku:";
 }

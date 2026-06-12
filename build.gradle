@@ -46,7 +46,7 @@ subprojects {
     ext {
         set('springBootVersion', "3.3.4")
         set('springCloudVersion', "2023.0.3")
-        set('springCloudAlibabaVersion', "2023.0.1.0")
+        set('springCloudAlibabaVersion', "2023.0.3.2")
     }
 
     /*

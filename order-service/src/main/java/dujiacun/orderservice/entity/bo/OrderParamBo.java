@@ -1,5 +1,6 @@
 package dujiacun.orderservice.entity.bo;
 
+import dujiacun.orderservice.entity.SkuStock;
 import lombok.Data;
 import java.util.List;
 
@@ -17,19 +18,9 @@ public class OrderParamBo {
     private Long userId;
 
     /**
-     * 优惠券ID
+     * 商品列表List
      */
-    private Long couponId;
-
-    /**
-     * 商品列表ID
-     */
-    private List<Long> skuIdList;
-
-    /**
-     * 商品数量
-     */
-    private Integer skuNum;
+    private List<SkuStock> skuStockList;
 
     /**
      * 订单总价

@@ -24,10 +24,9 @@ public class OrderController {
     private OrderProperties orderProperties;
 
     @PostMapping("/orderInfo")
-    public CommonResult<List<Long>> createOrder(@Validated @RequestBody OrderRequestDto orderRequestDto) {
+    public CommonResult<Long> createOrder(@Validated @RequestBody OrderRequestDto orderRequestDto) {
         OrderParamBo orderParamBo = BeanConvertUtil.convert(orderRequestDto, OrderParamBo.class);
-        List<Long> orderList = orderService.createOrder(orderParamBo.getUserId(), orderParamBo);
-        return CommonResult.success(orderList);
+        return orderService.createOrder(orderParamBo.getUserId(), orderParamBo);
     }
 
     @GetMapping("/orderInfo")

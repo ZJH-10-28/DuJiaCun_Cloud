@@ -38,10 +38,18 @@
         </if>
     </select>
 
-    <select id="getBySkuId" parameterType="java.lang.Long" resultMap="resultMap">
+    <select id="getSkuInfoById" parameterType="java.lang.Long" resultMap="resultMap">
         SELECT
             sku_id,sku_name, sku_description, category_id, sku_price,
             sale_count, sku_stock_count
+        FROM sku_master
+        WHERE sku_id = #{skuId,jdbcType=BIGINT}
+        AND sku_status = 1
+        AND is_deleted = 0
+    </select>
+
+    <select id="getSkuStockCountById" parameterType="java.lang.Long" resultMap="java.lang.Integer">
+        SELECT sku_stock_count
         FROM sku_master
         WHERE sku_id = #{skuId,jdbcType=BIGINT}
         AND sku_status = 1

@@ -4,6 +4,7 @@ import dujiacun.common.CommonResult;
 import dujiacun.common.error.ErrorCode;
 import dujiacun.common.util.BeanConvertUtil;
 import dujiacun.skuservice.entity.SkuEntity;
+import dujiacun.skuservice.entity.SkuInfoBo;
 import dujiacun.skuservice.entity.SkuParamBo;
 import dujiacun.skuservice.entity.SkuResponseDto;
 import dujiacun.skuservice.mapper.SkuMapper;
@@ -32,8 +33,14 @@ public class SkuServiceImpl implements ISkuService{
     }
 
     @Override
-    public SkuEntity getBySkuId(Long skuId) {
-        return skuMapper.getBySkuId(skuId);
+    public CommonResult<SkuInfoBo> getSkuInfoById(Long skuId) {
+        SkuInfoBo skuInfoBo = BeanConvertUtil.convert(skuMapper.getSkuInfoById(skuId),SkuInfoBo.class);
+        return CommonResult.success(skuInfoBo);
+    }
+    @Override
+    public CommonResult<Integer> getSkuStockCountById(Long skuId) {
+        Integer skuStockCount = skuMapper.getSkuStockCountById(skuId);
+        return CommonResult.success(skuStockCount);
     }
 
     @Override

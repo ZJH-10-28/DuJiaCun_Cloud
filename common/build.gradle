@@ -21,6 +21,8 @@ dependencies {
     api 'org.springframework.boot:spring-boot-starter-amqp'
     //resdis
     api 'org.springframework.boot:spring-boot-starter-data-redis'
+    //redisson
+    api 'org.redisson:redisson:3.22.0'
     //openFigen
     api 'org.springframework.cloud:spring-cloud-starter-openfeign'
     //JWT

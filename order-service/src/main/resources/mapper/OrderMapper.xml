@@ -6,6 +6,7 @@
     <id property="orderId" column="order_id" javaType="java.lang.Long"/>
     <result  property="userId" column="user_id" javaType="java.lang.Long"/>
     <result  property="orderPrice" column="order_price" javaType="java.lang.Double"/>
+    <result  property="orderStatus" column="order_status" javaType="java.lang.Integer"/>
     <result  property="createTime" column="create_time" javaType="java.util.Date"/>
 </resultMap>
 
@@ -14,4 +15,34 @@
         FROM order_info
         WHERE order_id = #{orderParamBo.orderId,jdbcType=BIGINT}
     </select>
+
+    <insert id="saveOrderInfo" parameterType="dujiacun.orderservice.entity.OrderEntity">
+        INSERT INTO
+            order_info
+        (order_id, user_id, order_price, order_status, create_time)
+
+        VALUES (
+            #{orderEntity.orderId,jdbcType=BIGINT},
+            #{orderEntity.userId,jdbcType=BIGINT},
+            #{orderEntity.orderPrice,jdbcType=DOUBLE},
+            #{orderEntity.orderStatus,jdbcType=INTEGER},
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <insert id="saveOrderDetail">
+        INSERT INTO
+            order_detail
+        (order_id, sku_id, sale_count , coupon_id)
+
+        VALUES
+        <foreach collection="skuStockList" item="item" separator=",">
+            (
+            #{orderId,jdbcType=BIGINT},
+            #{item.skuId,jdbcType=BIGINT},
+            #{item.saleCount,jdbcType=INTEGER},
+            #{item.couponId,jdbcType=BIGINT}
+            )
+        </foreach>
+    </insert>
 </mapper>

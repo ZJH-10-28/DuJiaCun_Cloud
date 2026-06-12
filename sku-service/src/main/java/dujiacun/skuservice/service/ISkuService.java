@@ -2,6 +2,7 @@ package dujiacun.skuservice.service;
 
 import dujiacun.common.CommonResult;
 import dujiacun.skuservice.entity.SkuEntity;
+import dujiacun.skuservice.entity.SkuInfoBo;
 import dujiacun.skuservice.entity.SkuParamBo;
 import dujiacun.skuservice.entity.SkuResponseDto;
 
@@ -11,7 +12,9 @@ public interface ISkuService {
 
     CommonResult<List<SkuResponseDto>> getSkuInfo(SkuParamBo skuParamBo);
 
-    SkuEntity getBySkuId(Long skuId);
+    CommonResult<SkuInfoBo> getSkuInfoById(Long skuId);
+
+    CommonResult<Integer> getSkuStockCountById(Long skuId);
 
     CommonResult<String> insertSkuInfo(SkuParamBo skuParamBo);
 

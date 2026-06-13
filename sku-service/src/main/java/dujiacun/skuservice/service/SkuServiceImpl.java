@@ -6,6 +6,7 @@ import dujiacun.common.exception.BusinessException;
 import dujiacun.common.util.BeanConvertUtil;
 import dujiacun.skuservice.entity.*;
 import dujiacun.skuservice.mapper.SkuMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 public class SkuServiceImpl implements ISkuService{
 
@@ -54,10 +56,12 @@ public class SkuServiceImpl implements ISkuService{
     @Override
     @Transactional(rollbackFor = Exception.class)
     public CommonResult<String> saveSkuDetail(Long orderId, List<SkuStock> skuStockList) {
+        log.info("开始保存订单明细");
         Integer detailResult = skuMapper.saveSkuDetail(orderId,skuStockList);
         if (detailResult <= 0){
             throw new BusinessException("订单明细保存失败");
         }
+        log.info("结束保存订单明细");
         return CommonResult.success("订单明细保存成功");
     }
 

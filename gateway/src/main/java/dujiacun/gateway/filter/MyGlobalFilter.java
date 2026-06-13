@@ -15,6 +15,7 @@ import io.jsonwebtoken.Claims;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static dujiacun.common.constant.SysConstant.*;
 
@@ -29,9 +30,28 @@ public class MyGlobalFilter implements GlobalFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
 
-
         String path = exchange.getRequest().getURI().getPath();
         if (path.startsWith("/users/login") || path.startsWith("/users/register")) {
+            return chain.filter(exchange);
+        }
+
+        //防抖
+        String userId = exchange.getRequest().getHeaders().getFirst(STR_USER_ID);
+        String params = exchange.getRequest().getQueryParams().toSingleValueMap().toString();
+        String STR_DEBOUNCE_KEY = "debounce:";
+        String debounceKey = String.format(STR_DEBOUNCE_KEY + "%s:%s:%s", userId , path , params);
+        long debounceMiles = 3000;
+
+        try {
+            boolean isDebounce = Boolean.TRUE.equals(redisTemplate.opsForValue()
+                    .setIfAbsent(debounceKey, "isDebounce", debounceMiles, TimeUnit.MILLISECONDS));
+            if (!isDebounce){
+                //设置429状态码
+                exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS);
+                return exchange.getResponse().setComplete();
+            }
+        } catch (Exception e) {
+            //Redis异常
             return chain.filter(exchange);
         }
 

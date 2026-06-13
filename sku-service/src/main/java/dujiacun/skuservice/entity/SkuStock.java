@@ -21,6 +21,13 @@ public class SkuStock {
     private Integer saleCount;
 
     /**
+     * 商品价格
+     */
+    @NotNull(message = "请选择商品")
+    @Min(value = 0, message = "价格最小值为 {value}")
+    private Double skuPrice;
+
+    /**
      * 优惠券ID
      */
     private Long couponId;

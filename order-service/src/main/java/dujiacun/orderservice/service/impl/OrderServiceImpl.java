@@ -132,7 +132,7 @@ public class OrderServiceImpl implements IOrderService {
                     if (skuStockCount < skuStock.getSaleCount()){
                         throw new BusinessException("库存不足");
                     }
-                    redisTemplate.opsForValue().set(skuKey,skuStockCount - skuStock.getSaleCount());
+                    redisTemplate.opsForValue().set(skuKey,skuStockCount - skuStock.getSaleCount(), 60 * 10, TimeUnit.SECONDS);
                 } catch (BusinessException e) {
                     throw new BusinessException(e.getMessage());
                 }finally {

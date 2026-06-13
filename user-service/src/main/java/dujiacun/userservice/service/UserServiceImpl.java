@@ -73,7 +73,7 @@ public class UserServiceImpl implements IUserService {
         String token = JwtUtil.generateToken(
                 userEntity.getUserId().toString(),
                 claims,
-                30 * 60 * 1000);
+                30 * 60 * 1000 * 10);
 
         //将token返回给前端
         Map<String, Object> tokenMap = new HashMap<>();

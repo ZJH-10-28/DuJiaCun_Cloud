@@ -26,6 +26,11 @@ public class OrderParamBo {
      * 订单总价
      */
     private Double orderPrice;
+
+    /**
+     * 订单状态
+     */
+    private Integer orderStatus;
 }
 
 

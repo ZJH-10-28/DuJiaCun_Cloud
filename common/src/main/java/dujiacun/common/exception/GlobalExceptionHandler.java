@@ -36,6 +36,6 @@ public class GlobalExceptionHandler {
     @ResponseBody//将信息转换为JSON返回给前端
     @ExceptionHandler(Exception.class)
     public CommonResult<String> handleException(Exception e) {
-        return CommonResult.error(ErrorCode.FAILED.getCode(), e.getMessage());
+        return CommonResult.error(ErrorCode.FAILED.getCode(), "系统异常!" + e.getMessage());
     }
 }

@@ -48,7 +48,7 @@
         AND is_deleted = 0
     </select>
 
-    <select id="getSkuStockCountById" parameterType="java.lang.Long" resultMap="java.lang.Integer">
+    <select id="getSkuStockCountById" parameterType="java.lang.Long" >
         SELECT sku_stock_count
         FROM sku_master
         WHERE sku_id = #{skuId,jdbcType=BIGINT}
@@ -75,6 +75,22 @@
             #{skuParamBo.createUser,jdbcType=BIGINT},
             0
         )
+    </insert>
+
+    <insert id="saveSkuDetail">
+        INSERT INTO
+        sku_detail
+        (order_id, sku_id, sale_count , coupon_id)
+
+        VALUES
+        <foreach collection="skuStockList" item="item" separator=",">
+            (
+            #{orderId,jdbcType=BIGINT},
+            #{item.skuId,jdbcType=BIGINT},
+            #{item.saleCount,jdbcType=INTEGER},
+            #{item.couponId,jdbcType=BIGINT}
+            )
+        </foreach>
     </insert>
 
     <update id="updateSkuInfo" parameterType="dujiacun.skuservice.entity.SkuParamBo">

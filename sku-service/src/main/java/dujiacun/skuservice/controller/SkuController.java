@@ -5,6 +5,7 @@ import dujiacun.common.util.BeanConvertUtil;
 import dujiacun.skuservice.entity.SkuParamBo;
 import dujiacun.skuservice.entity.SkuRequestDto;
 import dujiacun.skuservice.entity.SkuResponseDto;
+import dujiacun.skuservice.entity.SkuStock;
 import dujiacun.skuservice.service.ISkuService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -32,7 +33,7 @@ public class SkuController {
         return CommonResult.success(skuResponseDto);
     }
     @GetMapping("/skuStockById")
-    public CommonResult<Integer> getSkuStockCountById(Long skuId) {
+    public CommonResult<Integer> getSkuStockCountById(@RequestParam Long skuId) {
         return skuService.getSkuStockCountById(skuId);
     }
 
@@ -40,6 +41,11 @@ public class SkuController {
     public CommonResult<String> insertSkuInfo(SkuRequestDto skuRequestDto) {
         SkuParamBo skuParamBo = BeanConvertUtil.convert(skuRequestDto, SkuParamBo.class);
         return skuService.insertSkuInfo(skuParamBo);
+    }
+
+    @PostMapping("/skuDetail")
+    public CommonResult<String> saveSkuDetail(@RequestParam Long orderId,@RequestBody List<SkuStock> skuStockList) {
+        return skuService.saveSkuDetail(orderId,skuStockList);
     }
 
     @PostMapping("/updateSkuInfo")

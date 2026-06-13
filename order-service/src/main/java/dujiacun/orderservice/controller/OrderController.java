@@ -26,7 +26,15 @@ public class OrderController {
     @PostMapping("/orderInfo")
     public CommonResult<Long> createOrder(@Validated @RequestBody OrderRequestDto orderRequestDto) {
         OrderParamBo orderParamBo = BeanConvertUtil.convert(orderRequestDto, OrderParamBo.class);
-        return orderService.createOrder(orderParamBo.getUserId(), orderParamBo);
+        boolean isStock = orderService.checkStock(orderParamBo.getSkuStockList());
+        if (!isStock){
+            return CommonResult.error("库存不足");
+        }
+        Long orderId = orderService.createOrder(orderParamBo.getUserId(), orderParamBo).getData();
+        if (orderId == null) {
+            return CommonResult.error("订单创建失败");
+        }
+        return orderService.afterCreateOrder(orderId);
     }
 
     @GetMapping("/orderInfo")

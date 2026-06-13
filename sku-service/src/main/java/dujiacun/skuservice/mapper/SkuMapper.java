@@ -1,8 +1,8 @@
 package dujiacun.skuservice.mapper;
 
 import dujiacun.skuservice.entity.SkuEntity;
-import dujiacun.skuservice.entity.SkuInfoBo;
 import dujiacun.skuservice.entity.SkuParamBo;
+import dujiacun.skuservice.entity.SkuStock;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -15,9 +15,14 @@ public interface SkuMapper {
 
     SkuEntity getSkuInfoById(@Param("skuId") Long skuId);
 
-    int getSkuStockCountById(@Param("skuId") Long skuId);
+    Integer getSkuStockCountById(@Param("skuId") Long skuId);
 
     int insertSkuInfo(@Param("skuParamBo") SkuParamBo skuParamBo);
+
+    int saveSkuDetail(
+            @Param("orderId") Long orderId,
+            @Param("skuStockList") List<SkuStock> skuStockList
+    );
 
     int updateSkuInfo(@Param("skuParamBo") SkuParamBo skuParamBo);
 

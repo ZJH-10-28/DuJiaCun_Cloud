@@ -14,9 +14,4 @@ public interface OrderMapper {
 
     int saveOrderInfo(@Param("orderEntity") OrderEntity orderEntity);
 
-    int saveOrderDetail(
-            @Param("orderId") Long orderId,
-            @Param("skuStockList") List<SkuStock> skuStockList
-    );
-
 }

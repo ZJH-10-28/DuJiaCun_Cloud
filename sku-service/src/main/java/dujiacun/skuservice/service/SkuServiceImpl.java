@@ -2,14 +2,13 @@ package dujiacun.skuservice.service;
 
 import dujiacun.common.CommonResult;
 import dujiacun.common.error.ErrorCode;
+import dujiacun.common.exception.BusinessException;
 import dujiacun.common.util.BeanConvertUtil;
-import dujiacun.skuservice.entity.SkuEntity;
-import dujiacun.skuservice.entity.SkuInfoBo;
-import dujiacun.skuservice.entity.SkuParamBo;
-import dujiacun.skuservice.entity.SkuResponseDto;
+import dujiacun.skuservice.entity.*;
 import dujiacun.skuservice.mapper.SkuMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +52,16 @@ public class SkuServiceImpl implements ISkuService{
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public CommonResult<String> saveSkuDetail(Long orderId, List<SkuStock> skuStockList) {
+        Integer detailResult = skuMapper.saveSkuDetail(orderId,skuStockList);
+        if (detailResult <= 0){
+            throw new BusinessException("订单明细保存失败");
+        }
+        return CommonResult.success("订单明细保存成功");
+    }
+
+    @Override
     public CommonResult<String> updateSkuInfo(SkuParamBo skuParamBo) {
         int result = skuMapper.updateSkuInfo(skuParamBo);
         if(result <= 0){
@@ -62,6 +71,7 @@ public class SkuServiceImpl implements ISkuService{
     }
 
     @Override
+    @Transactional
     public CommonResult<String> saleSkuInfo(Long skuId, Integer saleCount) {
         int result = skuMapper.saleSkuInfo(skuId,saleCount);
         if(result <= 0){

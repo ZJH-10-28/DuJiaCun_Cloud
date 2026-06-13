@@ -29,20 +29,4 @@
             CURRENT_TIMESTAMP
         )
     </insert>
-
-    <insert id="saveOrderDetail">
-        INSERT INTO
-            order_detail
-        (order_id, sku_id, sale_count , coupon_id)
-
-        VALUES
-        <foreach collection="skuStockList" item="item" separator=",">
-            (
-            #{orderId,jdbcType=BIGINT},
-            #{item.skuId,jdbcType=BIGINT},
-            #{item.saleCount,jdbcType=INTEGER},
-            #{item.couponId,jdbcType=BIGINT}
-            )
-        </foreach>
-    </insert>
 </mapper>

@@ -1,10 +1,7 @@
 package dujiacun.skuservice.service;
 
 import dujiacun.common.CommonResult;
-import dujiacun.skuservice.entity.SkuEntity;
-import dujiacun.skuservice.entity.SkuInfoBo;
-import dujiacun.skuservice.entity.SkuParamBo;
-import dujiacun.skuservice.entity.SkuResponseDto;
+import dujiacun.skuservice.entity.*;
 
 import java.util.List;
 
@@ -17,6 +14,8 @@ public interface ISkuService {
     CommonResult<Integer> getSkuStockCountById(Long skuId);
 
     CommonResult<String> insertSkuInfo(SkuParamBo skuParamBo);
+
+    CommonResult<String> saveSkuDetail(Long orderId,List<SkuStock> skuStockList);
 
     CommonResult<String> updateSkuInfo(SkuParamBo skuParamBo);
 

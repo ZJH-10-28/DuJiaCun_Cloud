@@ -28,7 +28,7 @@ public class SkuStock {
     private Double skuPrice;
 
     /**
-     * 优惠券ID
+     * 使用的优惠券ID
      */
     private Long couponId;
 }

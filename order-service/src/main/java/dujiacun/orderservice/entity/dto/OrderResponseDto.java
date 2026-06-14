@@ -1,9 +1,8 @@
 package dujiacun.orderservice.entity.dto;
 
-import dujiacun.orderservice.entity.UserEntity;
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 public class OrderResponseDto {
@@ -14,5 +13,5 @@ public class OrderResponseDto {
 
     private Double orderPrice;
 
-    private Date createTime;
+    private LocalDateTime createTime;
 }

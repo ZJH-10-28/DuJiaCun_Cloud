@@ -12,7 +12,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import static dujiacun.common.constant.OrderConstant.*;
+import static dujiacun.common.constant.SkuConstant.*;
 
 @Slf4j
 @Service
@@ -26,27 +31,37 @@ public class SkuServiceImpl implements ISkuService{
         for (SkuEntity skuEntity : skuMapper.getSkuInfo(skuParamBo)){
             list.add(BeanConvertUtil.convert(skuEntity, SkuResponseDto.class));
         }
-
-        if(list.size() <= 0){
+        if(list.isEmpty()){
             return CommonResult.error(ErrorCode.FAILED.getCode(), "检索不到商品");
         }
         return CommonResult.success("检索完成",list);
     }
 
     @Override
-    public CommonResult<SkuInfoBo> getSkuInfoById(Long skuId) {
-        SkuInfoBo skuInfoBo = BeanConvertUtil.convert(skuMapper.getSkuInfoById(skuId),SkuInfoBo.class);
-        return CommonResult.success(skuInfoBo);
+    public CommonResult<List<SkuResponseDto>> getSkuInfoById(List<Long> skuIds) {
+        List<SkuResponseDto> skuResponseDtoList = new ArrayList<>();
+        for (SkuEntity skuEntity : skuMapper.getSkuInfoById(skuIds)){
+            SkuResponseDto skuResponseDto = BeanConvertUtil.convert(skuEntity, SkuResponseDto.class);
+            skuResponseDtoList.add(skuResponseDto);
+        }
+        if(skuResponseDtoList.isEmpty()){
+            return CommonResult.error(ErrorCode.FAILED.getCode(), "检索不到商品");
+        }
+        return CommonResult.success("检索完成",skuResponseDtoList);
     }
     @Override
-    public CommonResult<Integer> getSkuStockCountById(Long skuId) {
-        Integer skuStockCount = skuMapper.getSkuStockCountById(skuId);
-        return CommonResult.success(skuStockCount);
+    public Map<Long, Integer> getSkuStocksByIds(List<Long> skuIds) {
+        Map<Long, Integer> skuStockCountMap = new HashMap<>();
+        List<SkuEntity> skuEntityList = skuMapper.getSkuStocksByIds(skuIds);
+        for (SkuEntity skuEntity : skuEntityList){
+            skuStockCountMap.put(skuEntity.getSkuId(),skuEntity.getSkuStockCount());
+        }
+        return skuStockCountMap;
     }
 
     @Override
     public CommonResult<String> insertSkuInfo(SkuParamBo skuParamBo) {
-        int result = skuMapper.insertSkuInfo(skuParamBo);
+        int result = skuMapper.insertSkuInfo(skuParamBo,NOT_DELETED);
         if(result <= 0){
             return CommonResult.error(ErrorCode.FAILED.getCode(), "新增失败");
         }
@@ -57,7 +72,7 @@ public class SkuServiceImpl implements ISkuService{
     @Transactional(rollbackFor = Exception.class)
     public CommonResult<String> saveSkuDetail(Long orderId, List<SkuStock> skuStockList) {
         log.info("开始保存订单明细");
-        Integer detailResult = skuMapper.saveSkuDetail(orderId,skuStockList);
+        Integer detailResult = skuMapper.saveSkuDetail(orderId,skuStockList,ORDER_STATUS_WAIT_FOR_PAY);
         if (detailResult <= 0){
             throw new BusinessException("订单明细保存失败");
         }
@@ -76,8 +91,8 @@ public class SkuServiceImpl implements ISkuService{
 
     @Override
     @Transactional
-    public CommonResult<String> saleSkuInfo(Long skuId, Integer saleCount) {
-        int result = skuMapper.saleSkuInfo(skuId,saleCount);
+    public CommonResult<String> saleSkuInfo(Long skuId) {
+        int result = skuMapper.saleSkuInfo(skuId,IS_SALE);
         if(result <= 0){
             return CommonResult.error(ErrorCode.FAILED.getCode(), "库存扣减失败");
         }
@@ -85,8 +100,8 @@ public class SkuServiceImpl implements ISkuService{
     }
 
     @Override
-    public CommonResult<String> deleteSkuInfo(Long skuId) {
-        int result = skuMapper.deleteSkuInfo(skuId);
+    public CommonResult<String> deleteSkuInfo(List<Long> skuIds) {
+        int result = skuMapper.deleteSkuInfo(skuIds,IS_DELETED);
         if(result <= 0){
             return CommonResult.error(ErrorCode.FAILED.getCode(), "商品删除失败");
         }

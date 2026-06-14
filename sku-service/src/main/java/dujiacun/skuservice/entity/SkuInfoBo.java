@@ -2,7 +2,7 @@ package dujiacun.skuservice.entity;
 
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 public class SkuInfoBo {
@@ -42,7 +42,7 @@ public class SkuInfoBo {
     /**
      * 创建时间
      */
-    private Date createTime;
+    private LocalDateTime createTime;
     /**
      * 创建人
      */
@@ -50,7 +50,7 @@ public class SkuInfoBo {
     /**
      * 修改时间
      */
-    private Date updateTime;
+    private LocalDateTime updateTime;
     /**
      * 修改人
      */

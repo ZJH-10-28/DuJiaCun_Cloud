@@ -16,17 +16,16 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.script.RedisScript;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static dujiacun.common.constant.SysConstant.*;
-import static dujiacun.orderservice.constant.OrderStatusConstant.*;
+import static dujiacun.common.constant.OrderConstant.*;
 
 @Slf4j
 @Service
@@ -107,57 +106,63 @@ public class OrderServiceImpl implements IOrderService {
 
         log.info("开始验证库存");
         //按SKU排序
-        List<SkuStock> soredSkuStockList = skuStockList.stream()
+        List<SkuStock> sortedSkuStockList = skuStockList.stream()
                 .sorted(Comparator.comparing(SkuStock::getSkuId))
                 .toList();
 
         // 取得所有SKU对应的Rediskey
-        List<String> skuRedisKeys = soredSkuStockList.stream()
+        List<String> skuRedisKeys = sortedSkuStockList.stream()
                 .map(s -> STR_SKU + s.getSkuId())
                 .toList();
+        List<Long> skuRedisIds = sortedSkuStockList.stream()
+                .map(SkuStock::getSkuId)
+                .toList();
+
         // 批量查询Redis
         List<Object> stocks = redisTemplate.opsForValue().multiGet(skuRedisKeys);
         if (stocks == null || stocks.isEmpty()){
-            dbTORedis(skuRedisKeys,skuRedisKeys);
+            dbTORedis(skuRedisIds,skuRedisKeys);
         }
 
         //找出Redis中没有的SKU
         List<String> noSkuRedisKeys = new ArrayList<>();
+        List<Long> noSkuRedisIds = new ArrayList<>();
         for (int i = 0; i < stocks.size(); i++) {
             if (stocks.get(i) == null){
                 noSkuRedisKeys.add(skuRedisKeys.get(i));
+                noSkuRedisIds.add(skuRedisIds.get(i));
             }
         }
 
         //Redis中缺少数据
         if (!noSkuRedisKeys.isEmpty()){
-            dbTORedis(skuRedisKeys,noSkuRedisKeys);
+            dbTORedis(noSkuRedisIds,noSkuRedisKeys);
         }
 
         String luaScript =
                 "for i, key in ipairs(KEYS) do " +
-                        "   local stock = redis.call('GET', key) " +
-                        "   if not stock or tonumber(stock) < tonumber(ARGV[i]) then " +
-                        "       return i " +
-                        "   end " +
-                        "end " +
-                        "for i, key in ipairs(KEYS) do " +
-                        "   redis.call('DECRBY', key, ARGV[i]) " +
-                        "end " +
-                        "return -1";
+                "   local stock = redis.call('GET', key) " +
+                "   if not stock or tonumber(stock) < tonumber(ARGV[i]) then " +
+                "       return i " +
+                "   end " +
+                "end " +
+                "for i, key in ipairs(KEYS) do " +
+                "   redis.call('DECRBY', key, ARGV[i]) " +
+                "end " +
+                "return -1";
 
         List<String> keys = skuRedisKeys;
-        List<String> values = soredSkuStockList.stream()
-                .map(s -> s.getSaleCount().toString())
+        List<Integer> values = sortedSkuStockList.stream()
+                .map(s -> s.getSaleCount())
                 .toList();
         long result = (long)redisTemplate.execute(
-                RedisScript.of(luaScript, Long.class),
+                new DefaultRedisScript<>(luaScript, long.class),
                 keys,
-                values
+                values.toArray()
         );
 
         if (result >= 0){
-            throw new BusinessException("库存不足:" + soredSkuStockList.get((int)result - 1).getSkuId());
+            throw new BusinessException("库存不足:" + sortedSkuStockList.get((int)result - 1).getSkuId());
         }
         log.info("结束验证库存");
         return true;
@@ -168,17 +173,17 @@ public class OrderServiceImpl implements IOrderService {
     }
 
     // TODO 从数据库中查没有的SKU到Redis中
-    public void dbTORedis(List<String> skuRedisKeys , List<String> noSkuRedisKeys) {
+    public void dbTORedis(List<Long> noSkuRedisIds , List<String> noSkuRedisKeys) {
         RLock lock = redissonClient.getLock("BATCH_LOAD_STOCK_LOCK");
 
         try {
             if (lock.tryLock(3, 10, TimeUnit.SECONDS)) {
 
 //                // 双重检查
-                List<String> needLoadSkuIds = new ArrayList<>();
+                List<Long> needLoadSkuIds = new ArrayList<>();
                 for (int i = 0; i < noSkuRedisKeys.size(); i++) {
                     if (!redisTemplate.hasKey(noSkuRedisKeys.get(i))) {
-                        needLoadSkuIds.add(skuRedisKeys.get(i));
+                        needLoadSkuIds.add(noSkuRedisIds.get(i));
                     }
                 }
                 if (needLoadSkuIds.isEmpty()){
@@ -186,13 +191,11 @@ public class OrderServiceImpl implements IOrderService {
                 }
 
                 // 批量从 DB 查询库存
-//                Map<Long, Integer> dbStocks = skuClient.getSkuInfo(needLoadSkuIds);
-//                // 写入 Redis 并设置 TTL
-//                Map<String, Integer> cacheMap = new HashMap<>();
-//                for (String skuId : needLoadSkuIds) {
-//                    cacheMap.put(skuId, dbStocks.get(skuId));
-//                    redisTemplate.opsForValue().set(skuId, dbStocks.get(skuId), 1, TimeUnit.HOURS);
-//                }
+                Map<Long, Integer> dbStocks = skuClient.getStocksBySkuIds(needLoadSkuIds);
+                // 写入 Redis
+                for (Long skuId : needLoadSkuIds) {
+                    redisTemplate.opsForValue().set(STR_SKU + skuId, dbStocks.get(skuId), 1, TimeUnit.HOURS);
+                }
             } else {
                 throw new BusinessException("系统繁忙，请稍后重试");
             }

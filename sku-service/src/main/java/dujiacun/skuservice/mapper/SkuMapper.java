@@ -13,23 +13,21 @@ public interface SkuMapper {
 
     List<SkuEntity> getSkuInfo(@Param("skuParamBo") SkuParamBo skuParamBo);
 
-    SkuEntity getSkuInfoById(@Param("skuId") Long skuId);
+    List<SkuEntity> getSkuInfoById(@Param("skuIds") List<Long> skuIds);
 
-    Integer getSkuStockCountById(@Param("skuId") Long skuId);
+    List<SkuEntity> getSkuStocksByIds(@Param("skuIds") List<Long> skuIds);
 
-    int insertSkuInfo(@Param("skuParamBo") SkuParamBo skuParamBo);
+    int insertSkuInfo(@Param("skuParamBo") SkuParamBo skuParamBo, @Param("deleteStatus") Integer deleteStatus);
 
     int saveSkuDetail(
             @Param("orderId") Long orderId,
-            @Param("skuStockList") List<SkuStock> skuStockList
+            @Param("skuStockList") List<SkuStock> skuStockList,
+            @Param("orderStatus") Integer orderStatus
     );
 
     int updateSkuInfo(@Param("skuParamBo") SkuParamBo skuParamBo);
 
-    int saleSkuInfo(
-            @Param("skuId") Long skuId,
-            @Param("saleCount") Integer saleCount
-    );
+    int saleSkuInfo(@Param("skuId") Long skuId, @Param("saleStatus") Integer saleStatus);
 
-    int deleteSkuInfo(@Param("skuId") Long skuId);
+    int deleteSkuInfo(@Param("skuId") List<Long> skuIds, @Param("deleteStatus") Integer deleteStatus);
 }

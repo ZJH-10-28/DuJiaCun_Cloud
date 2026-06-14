@@ -2,7 +2,7 @@ package dujiacun.orderservice.entity;
 
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 public class SkuResponseDto {
@@ -41,7 +41,7 @@ public class SkuResponseDto {
     /**
      * 创建时间
      */
-    private Date createTime;
+    private LocalDateTime createTime;
     /**
      * 创建人
      */
@@ -49,7 +49,7 @@ public class SkuResponseDto {
     /**
      * 修改时间
      */
-    private Date updateTime;
+    private LocalDateTime updateTime;
     /**
      * 修改人
      */

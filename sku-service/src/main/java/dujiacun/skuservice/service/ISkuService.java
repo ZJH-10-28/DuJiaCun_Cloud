@@ -4,14 +4,15 @@ import dujiacun.common.CommonResult;
 import dujiacun.skuservice.entity.*;
 
 import java.util.List;
+import java.util.Map;
 
 public interface ISkuService {
 
     CommonResult<List<SkuResponseDto>> getSkuInfo(SkuParamBo skuParamBo);
 
-    CommonResult<SkuInfoBo> getSkuInfoById(Long skuId);
+    CommonResult<List<SkuResponseDto>> getSkuInfoById(List<Long> skuIds);
 
-    CommonResult<Integer> getSkuStockCountById(Long skuId);
+    Map<Long, Integer> getSkuStocksByIds(List<Long> skuIds);
 
     CommonResult<String> insertSkuInfo(SkuParamBo skuParamBo);
 
@@ -19,7 +20,7 @@ public interface ISkuService {
 
     CommonResult<String> updateSkuInfo(SkuParamBo skuParamBo);
 
-    CommonResult<String> saleSkuInfo(Long skuId, Integer saleCount);
+    CommonResult<String> saleSkuInfo(Long skuId);
 
-    CommonResult<String> deleteSkuInfo(Long skuId);
+    CommonResult<String> deleteSkuInfo(List<Long> skuIds);
 }

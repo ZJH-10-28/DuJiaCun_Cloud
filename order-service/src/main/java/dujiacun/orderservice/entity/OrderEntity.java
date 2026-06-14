@@ -2,7 +2,7 @@ package dujiacun.orderservice.entity;
 
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 public class OrderEntity {
@@ -18,5 +18,5 @@ public class OrderEntity {
      */
     private Integer orderStatus;
 
-    private Date createTime;
+    private LocalDateTime createTime;
 }

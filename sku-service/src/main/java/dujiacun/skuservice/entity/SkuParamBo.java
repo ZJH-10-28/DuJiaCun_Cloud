@@ -2,7 +2,7 @@ package dujiacun.skuservice.entity;
 
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 public class SkuParamBo {
@@ -31,9 +31,13 @@ public class SkuParamBo {
      */
     private Integer saleCount;
     /**
-     * 库存
+     * 剩余库存
      */
     private Integer skuStockCount;
+    /**
+     * 总库存
+     */
+    private Integer skuTotalStockCount;
     /**
      * 商品状态[0 - 下架，1 - 上架]
      */
@@ -41,7 +45,7 @@ public class SkuParamBo {
     /**
      * 创建时间
      */
-    private Date createTime;
+    private LocalDateTime createTime;
     /**
      * 创建人
      */
@@ -49,7 +53,7 @@ public class SkuParamBo {
     /**
      * 修改时间
      */
-    private Date updateTime;
+    private LocalDateTime updateTime;
     /**
      * 修改人
      */

@@ -1,9 +1,7 @@
 package dujiacun.orderservice.entity.bo;
 
-import dujiacun.orderservice.entity.UserEntity;
 import lombok.Data;
-
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 public class OrderInfoBo {
@@ -14,5 +12,5 @@ public class OrderInfoBo {
 
     private Double orderPrice;
 
-    private Date createTime;
+    private LocalDateTime createTime;
 }

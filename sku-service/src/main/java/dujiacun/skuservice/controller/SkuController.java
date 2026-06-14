@@ -2,15 +2,13 @@ package dujiacun.skuservice.controller;
 
 import dujiacun.common.CommonResult;
 import dujiacun.common.util.BeanConvertUtil;
-import dujiacun.skuservice.entity.SkuParamBo;
-import dujiacun.skuservice.entity.SkuRequestDto;
-import dujiacun.skuservice.entity.SkuResponseDto;
-import dujiacun.skuservice.entity.SkuStock;
+import dujiacun.skuservice.entity.*;
 import dujiacun.skuservice.service.ISkuService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/skus")
@@ -27,14 +25,13 @@ public class SkuController {
     }
 
     @GetMapping("/skuInfoById")
-    public CommonResult<SkuResponseDto> getSkuInfoById(Long skuId) {
-        SkuResponseDto skuResponseDto = BeanConvertUtil.convert(
-                skuService.getSkuInfoById(skuId),SkuResponseDto.class);
-        return CommonResult.success(skuResponseDto);
+    public CommonResult<List<SkuResponseDto>> getSkuInfoById(List<Long> skuIds) {
+        return skuService.getSkuInfoById(skuIds);
     }
-    @GetMapping("/skuStockById")
-    public CommonResult<Integer> getSkuStockCountById(@RequestParam Long skuId) {
-        return skuService.getSkuStockCountById(skuId);
+
+    @PostMapping("/skuStocksByIds")
+    public Map<Long, Integer> getStocksBySkuIds(@RequestBody List<Long> skuIds) {
+        return skuService.getSkuStocksByIds(skuIds);
     }
 
     @PostMapping("/newSkuInfo")
@@ -55,12 +52,12 @@ public class SkuController {
     }
 
     @PostMapping("/skuOrder")
-    public CommonResult<String> saleSkuInfo(@RequestParam("skuId") Long skuId,@RequestParam("saleCount")  Integer saleCount) {
-        return skuService.saleSkuInfo(skuId,saleCount);
+    public CommonResult<String> saleSkuInfo(@RequestParam("skuId") Long skuId) {
+        return skuService.saleSkuInfo(skuId);
     }
 
     @PostMapping("/skuInfoDelete")
-    public CommonResult<String> deleteSkuInfo(Long skuId) {
-        return skuService.deleteSkuInfo(skuId);
+    public CommonResult<String> deleteSkuInfo(List<Long> skuIds) {
+        return skuService.deleteSkuInfo(skuIds);
     }
 }

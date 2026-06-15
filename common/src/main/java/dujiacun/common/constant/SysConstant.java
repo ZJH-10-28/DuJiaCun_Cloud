@@ -61,4 +61,6 @@ public interface SysConstant {
      * 商品信息
      */
     String STR_SKU = "sku:";
+
+    String REDIS_STOCK_LOCK = "REDIS_STOCK_LOCK";
 }

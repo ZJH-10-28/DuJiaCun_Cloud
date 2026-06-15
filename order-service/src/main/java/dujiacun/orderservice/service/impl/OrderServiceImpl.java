@@ -22,10 +22,12 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import static dujiacun.common.constant.SysConstant.*;
 import static dujiacun.common.constant.OrderConstant.*;
+import static java.lang.Math.random;
 
 @Slf4j
 @Service
@@ -201,8 +203,8 @@ public class OrderServiceImpl implements IOrderService {
                             STR_SKU + skuId,
                             //数据库没有当前SKU就返回0,防止缓存穿透
                             dbStocks.get(skuId) == null ? 0 : dbStocks.get(skuId),
-                            1,
-                            TimeUnit.HOURS
+                            3600 + ThreadLocalRandom.current().nextLong(0,600),
+                            TimeUnit.SECONDS
                     );
                 }
             } else {

@@ -9,8 +9,8 @@ spring:
       client:
         config:
           default:
-            connect-timeout: 3000
-            read-timeout: 10000
+            connect-timeout: 3000 # 连接超时3秒
+            read-timeout: 5000 # 读取超时5秒
   datasource:
     url: jdbc:postgresql://localhost:5432/DuJiaCun_Cloud_Sku
     username: postgres

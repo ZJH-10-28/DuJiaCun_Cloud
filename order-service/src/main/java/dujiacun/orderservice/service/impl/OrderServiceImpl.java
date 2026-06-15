@@ -22,12 +22,10 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import static dujiacun.common.constant.SysConstant.*;
 import static dujiacun.common.constant.OrderConstant.*;
-import static java.lang.Math.random;
 
 @Slf4j
 @Service
@@ -78,6 +76,7 @@ public class OrderServiceImpl implements IOrderService {
         } catch (Exception e) {
             //回滚Redis
             this.rollbackStock(skuStockList);
+            //抛出异常让seata捕获
             throw new RuntimeException(e);
         }
     }

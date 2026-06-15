@@ -1,9 +1,12 @@
 package dujiacun.skuservice.controller;
 
 import dujiacun.common.CommonResult;
+import dujiacun.common.error.ErrorCode;
 import dujiacun.common.util.BeanConvertUtil;
 import dujiacun.skuservice.entity.*;
 import dujiacun.skuservice.service.ISkuService;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +19,9 @@ public class SkuController {
 
     @Autowired
     private ISkuService skuService;
+
+    @Autowired
+    private RedissonClient redissonClient;
 
     @GetMapping("/skuList")
     public CommonResult<List<SkuResponseDto>> getSkuInfo(SkuRequestDto skuRequestDto) {
@@ -42,7 +48,13 @@ public class SkuController {
 
     @PostMapping("/skuDetail")
     public CommonResult<String> saveSkuDetail(@RequestParam Long orderId,@RequestBody List<SkuStock> skuStockList) {
-        return skuService.saveSkuDetail(orderId,skuStockList);
+        RLock lock = redissonClient.getLock(orderId + "saveSkuDetail");
+        if (lock.tryLock()){
+            CommonResult<String> result = skuService.saveSkuDetail(orderId,skuStockList);
+            lock.unlock();
+            return result;
+        }
+        return CommonResult.error(ErrorCode.FAILED.getCode(), "请勿重复提交");
     }
 
     @PostMapping("/updateSkuInfo")

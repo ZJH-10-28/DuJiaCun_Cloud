@@ -11,8 +11,9 @@ spring:
       client:
         config:
           default: #全局默认设置
-              connect-timeout: 5000
-              read-timeout: 3000
+#            retryer: feign.Retryer.NEVER_RETRY # 关闭feign重试
+            connect-timeout: 3000 # 连接超时3秒
+            read-timeout: 6000 # 读取超时6秒 , 需要大于seata的超时时间
   datasource:
     url: jdbc:postgresql://localhost:5432/DuJiaCun_Cloud_Order
     username: postgres
@@ -47,6 +48,7 @@ seata:
       default_tx_group: default
     grouplist:
       default: 127.0.0.1:8091
+    timeout: 5000 # 默认超时时间 5 秒
   registry:
     type: file
   config:

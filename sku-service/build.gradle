@@ -27,6 +27,9 @@ dependencies {
     //Seata
     implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-seata'
 
+    //RabbitMQ
+    implementation 'org.springframework.boot:spring-boot-starter-amqp'
+
     //common工具类
     implementation project(':common')
 

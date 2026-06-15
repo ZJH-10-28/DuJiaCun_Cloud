@@ -3,6 +3,7 @@ package dujiacun.orderservice.service.impl;
 import dujiacun.common.CommonResult;
 import dujiacun.common.exception.BusinessException;
 import dujiacun.common.util.BeanConvertUtil;
+import dujiacun.orderservice.config.RabbitMQConfig;
 import dujiacun.orderservice.entity.OrderEntity;
 import dujiacun.orderservice.entity.SkuStock;
 import dujiacun.orderservice.entity.bo.OrderInfoBo;
@@ -14,6 +15,7 @@ import io.seata.spring.annotation.GlobalTransactional;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -42,6 +44,9 @@ public class OrderServiceImpl implements IOrderService {
 
     @Autowired
     private RedissonClient redissonClient;
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
     @GlobalTransactional(rollbackFor= Exception.class)
     public CommonResult<Long> createOrder(Long userId , OrderParamBo orderParamBo) {
@@ -86,6 +91,11 @@ public class OrderServiceImpl implements IOrderService {
         //调用支付模块,支付成功后更新订单信息到OrderInfo,标记为支付成功
 
         //调用MQ异步扣减sku_master库存,修改订单明细状态为已支付
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.ORDER_EXCHANGE,
+                RabbitMQConfig.ROUTING_KEY,
+                orderId.toString()
+        );
 
         return CommonResult.success("下单成功",orderId);
     }

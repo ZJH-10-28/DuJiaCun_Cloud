@@ -25,3 +25,30 @@ mybatis:
   mapper-locations: classpath:mapper/*.xml
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+seata:
+  enable-auto-data-source-proxy: true
+  store-mode: db
+  tx-service-group: default_tx_group
+
+  service:
+    vgroup-mapping:
+      default_tx_group: default
+    grouplist:
+      default: 127.0.0.1:8091
+    timeout: 5000 # 默认超时时间 5 秒
+  registry:
+    type: file
+  config:
+    type: file
+
+  client:
+    rm:
+      # 启用AT模式数据源代理（默认true，必须显式声明）
+      data-source-proxy-mode: AT
+      # 防悬挂必需：上报分支事务状态
+      report-success-enable: true
+      # 全局锁重试参数（解决并发冲突）
+      lock:
+        retry-interval: 10        # 重试间隔（毫秒）
+        retry-times: 30           # 最大重试次数

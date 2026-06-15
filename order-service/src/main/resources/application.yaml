@@ -43,6 +43,7 @@ seata:
   enable-auto-data-source-proxy: true
   store-mode: db
   tx-service-group: default_tx_group
+
   service:
     vgroup-mapping:
       default_tx_group: default
@@ -53,3 +54,12 @@ seata:
     type: file
   config:
     type: file
+
+  client:
+    tm:
+      # 全局事务超时时间（毫秒），默认60000
+      default-global-transaction-timeout: 30000
+      # 回滚重试次数
+      rollback-retry-count: 3
+      # 异步提交超时（毫秒）
+      async-commit-timeout: 10000

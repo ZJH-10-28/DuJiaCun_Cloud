@@ -142,7 +142,10 @@ public class OrderServiceImpl implements IOrderService {
         String luaScript =
                 "for i, key in ipairs(KEYS) do " +
                 "   local stock = redis.call('GET', key) " +
-                "   if not stock or tonumber(stock) < tonumber(ARGV[i]) then " +
+                "   if not stock then " +
+                "       return i " +
+                "   end " +
+                "   if tonumber(stock) < tonumber(ARGV[i]) then " +
                 "       return i " +
                 "   end " +
                 "end " +
@@ -194,7 +197,13 @@ public class OrderServiceImpl implements IOrderService {
                 Map<Long, Integer> dbStocks = skuClient.getStocksBySkuIds(needLoadSkuIds);
                 // 写入 Redis
                 for (Long skuId : needLoadSkuIds) {
-                    redisTemplate.opsForValue().set(STR_SKU + skuId, dbStocks.get(skuId), 1, TimeUnit.HOURS);
+                    redisTemplate.opsForValue().set(
+                            STR_SKU + skuId,
+                            //数据库没有当前SKU就返回0,防止缓存穿透
+                            dbStocks.get(skuId) == null ? 0 : dbStocks.get(skuId),
+                            1,
+                            TimeUnit.HOURS
+                    );
                 }
             } else {
                 throw new BusinessException("系统繁忙，请稍后重试");

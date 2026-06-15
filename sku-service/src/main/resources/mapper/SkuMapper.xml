@@ -73,10 +73,10 @@
             SM.sku_price,
             SM.sale_count,
         CASE WHEN
-            SM.sku_total_stock_count - SM.sale_count - COALESCE(SD.sale_count,0) != SM.sku_stock_count
+            SM.sku_total_stock_count - SM.sale_count <![CDATA[ < ]]> sum(COALESCE(SD.sale_count,0))
         THEN -1
         ELSE
-            SM.sku_total_stock_count - SM.sale_count - COALESCE(SD.sale_count,0)
+            SM.sku_total_stock_count - SM.sale_count - sum(COALESCE(SD.sale_count,0))
         END AS sku_stock_count
 
         FROM sku_master SM
@@ -89,6 +89,7 @@
         <foreach collection="skuIds" item="skuId" open="(" separator="," close=")">
              #{skuId,jdbcType=BIGINT}
         </foreach>
+        GROUP BY SM.sku_id,sd.sale_count
     </select>
 
     <insert id="insertSkuInfo" parameterType="dujiacun.skuservice.entity.SkuParamBo">

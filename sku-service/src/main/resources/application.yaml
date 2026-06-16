@@ -21,6 +21,27 @@ spring:
       host: 192.168.0.152
       port: 6379
       password: root
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: zjh
+    password: root
+    virtual-host: zjh_host      # 虚拟主机
+    # 生产者可靠性配置
+    publisher-confirm-type: correlated  # 开启异步生产者确认
+    publisher-returns: true             # 消息路由失败时回调
+    template:
+      mandatory: true                 # 强制触发returns回调
+    # 消费者可靠性配置
+    listener:
+      simple:
+        acknowledge-mode: manual      # 关闭自动ACK: 必须手动ACK，避免消息丢失
+        prefetch: 5                  # 单次拉取消息数，防消费者过载
+        retry:
+          enabled: true              # 开启消费失败重试
+          max-attempts: 3            # 最大重试次数
+
+
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   configuration:
@@ -54,22 +75,4 @@ seata:
         retry-times: 30           # 最大重试次数
 
 
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: zjh
-    password: root
-    virtual-host: zjh_host      # 虚拟主机
-    # 生产者可靠性配置
-    publisher-confirm-type: correlated  # 开启异步生产者确认
-    publisher-returns: true             # 消息路由失败时回调
-    template:
-      mandatory: true                 # 强制触发returns回调
-    # 消费者可靠性配置
-    listener:
-      simple:
-        acknowledge-mode: manual      # 关闭自动ACK: 必须手动ACK，避免消息丢失
-        prefetch: 5                  # 单次拉取消息数，防消费者过载
-        retry:
-          enabled: true              # 开启消费失败重试
-          max-attempts: 3            # 最大重试次数
+

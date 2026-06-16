@@ -3,7 +3,6 @@ package dujiacun.skuservice.listener;
 import com.rabbitmq.client.Channel;
 import dujiacun.common.CommonResult;
 import dujiacun.common.error.ErrorCode;
-import dujiacun.skuservice.config.RabbitMQConfig;
 import dujiacun.skuservice.service.ISkuService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
@@ -13,6 +12,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
+import static dujiacun.common.constant.RabbitMQConstant.*;
+
 @Slf4j
 @Component
 public class RabbitListenerService {
@@ -20,7 +21,7 @@ public class RabbitListenerService {
     @Autowired
     private ISkuService skuService;
 
-    @RabbitListener(queues = RabbitMQConfig.ORDER_QUEUE)
+    @RabbitListener(queues = ORDER_QUEUE)
     public void receive(Message message, Channel channel) throws IOException {
         log.info("接收到消息：{}",message.getBody());
         log.info("开始扣减库存");

@@ -3,7 +3,6 @@ package dujiacun.orderservice.service.impl;
 import dujiacun.common.CommonResult;
 import dujiacun.common.exception.BusinessException;
 import dujiacun.common.util.BeanConvertUtil;
-import dujiacun.orderservice.config.RabbitMQConfig;
 import dujiacun.orderservice.entity.OrderEntity;
 import dujiacun.orderservice.entity.SkuStock;
 import dujiacun.orderservice.entity.bo.OrderInfoBo;
@@ -26,6 +25,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static dujiacun.common.constant.RabbitMQConstant.*;
 import static dujiacun.common.constant.SysConstant.*;
 import static dujiacun.common.constant.OrderConstant.*;
 
@@ -64,6 +64,7 @@ public class OrderServiceImpl implements IOrderService {
                 + LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss"))
         );
         orderParamBo.setOrderId(orderId);
+        orderParamBo.setUserId(userId);
         //计算金额
         for (SkuStock skuStock : skuStockList){
             orderPrice += skuStock.getSkuPrice() * skuStock.getSaleCount();
@@ -92,8 +93,8 @@ public class OrderServiceImpl implements IOrderService {
 
         //调用MQ异步扣减sku_master库存,修改订单明细状态为已支付
         rabbitTemplate.convertAndSend(
-                RabbitMQConfig.ORDER_EXCHANGE,
-                RabbitMQConfig.ROUTING_KEY,
+                ORDER_EXCHANGE,
+                ROUTING_KEY,
                 orderId.toString()
         );
 

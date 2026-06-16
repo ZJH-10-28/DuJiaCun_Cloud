@@ -1,5 +1,6 @@
 package dujiacun.orderservice.controller;
 
+import dujiacun.common.constant.UserThreadLocal;
 import dujiacun.common.util.BeanConvertUtil;
 import dujiacun.orderservice.config.OrderProperties;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
@@ -30,7 +31,7 @@ public class OrderController {
         if (!isStock){
             return CommonResult.error("库存不足");
         }
-        Long orderId = orderService.createOrder(orderParamBo.getUserId(), orderParamBo).getData();
+        Long orderId = orderService.createOrder(Long.parseLong(UserThreadLocal.getUser()), orderParamBo).getData();
         if (orderId == null) {
             return CommonResult.error("订单创建失败");
         }

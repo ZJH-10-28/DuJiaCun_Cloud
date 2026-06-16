@@ -8,9 +8,6 @@ import java.util.List;
 @Data
 public class OrderRequestDto {
 
-    @NotNull
-    private Long userId;
-
     private List<SkuStock> skuStockList;
 
 }

@@ -11,7 +11,12 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue orderQueue() {
-        return new Queue(ORDER_QUEUE, true); // true 表示持久化
+        return QueueBuilder.durable(ORDER_QUEUE)
+                //指定死信队列
+                .deadLetterExchange(DEAD_ORDER_EXCHANGE)
+                .deadLetterRoutingKey(DEAD_ORDER_ROUTING_KEY)
+                .ttl(5000)
+                .build();
     }
 
     @Bean
@@ -24,5 +29,24 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(orderQueue())
                 .to(orderExchange())
                 .with(ROUTING_KEY).noargs();
+    }
+
+
+    // 死信队列
+    @Bean
+    public Queue deadQueue() {
+        return new Queue(DEAD_ORDER_QUEUE, true); // true 持久化
+    }
+
+    @Bean
+    public Exchange deadExchange() {
+        return new DirectExchange(DEAD_ORDER_EXCHANGE);
+    }
+
+    @Bean
+    public Binding deadBinding() {
+        return BindingBuilder.bind(deadQueue())
+                .to(deadExchange())
+                .with(DEAD_ORDER_ROUTING_KEY).noargs();
     }
 }

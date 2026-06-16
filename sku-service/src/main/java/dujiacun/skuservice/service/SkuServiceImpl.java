@@ -94,7 +94,7 @@ public class SkuServiceImpl implements ISkuService{
     public CommonResult<String> saleSkuInfo(Long skuId) {
         int result = skuMapper.saleSkuInfo(skuId,IS_SALE);
         if(result <= 0){
-            return CommonResult.error(ErrorCode.FAILED.getCode(), "库存扣减失败");
+            throw new BusinessException("库存扣减失败");
         }
         return CommonResult.success("库存扣减成功");
     }

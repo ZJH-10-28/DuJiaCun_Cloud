@@ -62,5 +62,14 @@ public interface SysConstant {
      */
     String STR_SKU = "sku:";
 
+    /**
+     * 预扣减锁
+     */
     String REDIS_STOCK_LOCK = "REDIS_STOCK_LOCK";
+
+    /**
+     * 回滚锁
+     */
+    String REDIS_ROLL_BACK_LOCK = "REDIS_ROLL_BACK_LOCK";
+
 }

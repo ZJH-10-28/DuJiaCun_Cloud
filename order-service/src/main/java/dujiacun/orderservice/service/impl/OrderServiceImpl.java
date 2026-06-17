@@ -15,10 +15,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -49,41 +51,38 @@ public class OrderServiceImpl implements IOrderService {
     private RabbitTemplate rabbitTemplate;
 
     @GlobalTransactional(rollbackFor= Exception.class)
-    public CommonResult<Long> createOrder(Long userId , OrderParamBo orderParamBo) {
+    public CommonResult<Long> createOrder(Long userId , OrderParamBo orderParamBo) throws InterruptedException {
 
-        log.info("开始创建订单");
         List<SkuStock> skuStockList = orderParamBo.getSkuStockList();
         Double orderPrice = 0.0;
 
         try {
-        //创建订单
-        // TODO 订单生成
-        Long orderId = Long.valueOf(
-                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
-                + userId
-                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss"))
-        );
-        orderParamBo.setOrderId(orderId);
-        orderParamBo.setUserId(userId);
-        //计算金额
-        for (SkuStock skuStock : skuStockList){
-            orderPrice += skuStock.getSkuPrice() * skuStock.getSaleCount();
-        }
-        orderParamBo.setOrderPrice(Math.round(orderPrice * 100.0) / 100.0 );
-        orderParamBo.setOrderStatus(ORDER_STATUS_WAIT_FOR_PAY);
+            //创建订单
+            log.info("开始创建订单");
+            Long orderId = Long.valueOf(
+                    LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
+                            + redisTemplate.opsForValue().increment("STR_ORDER_ID_GENERATOR", 1)
+            );
+            orderParamBo.setOrderId(orderId);
+            orderParamBo.setUserId(userId);
+            //计算金额
+            for (SkuStock skuStock : skuStockList) {
+                orderPrice += skuStock.getSkuPrice() * skuStock.getSaleCount();
+            }
+            orderParamBo.setOrderPrice(Math.round(orderPrice * 100.0) / 100.0);
+            orderParamBo.setOrderStatus(ORDER_STATUS_WAIT_FOR_PAY);
 
-        //保存订单信息到order数据库,标记为预扣减
-        this.saveOrderInfo(orderParamBo);
+            //保存订单信息到order数据库,标记为预扣减
+            saveOrderInfo(orderParamBo);
 
-        //保存订单明细到sku数据库
-        skuClient.saveSkuDetail(orderParamBo.getOrderId(),skuStockList);
+            //保存订单明细到sku数据库
+            skuClient.saveSkuDetail(orderParamBo.getOrderId(), skuStockList);
 
-        return CommonResult.success("订单创建成功",orderId);
+            log.info("结束创建订单");
+            return CommonResult.success("订单创建成功", orderId);
         } catch (Exception e) {
-            //回滚Redis
-            this.rollbackStock(skuStockList);
-            //抛出异常让seata捕获
-            throw new RuntimeException(e);
+            log.info("创建订单失败");
+            return CommonResult.error("订单创建失败");
         }
     }
     public CommonResult<Long> afterCreateOrder(Long orderId) {
@@ -107,6 +106,7 @@ public class OrderServiceImpl implements IOrderService {
         orderEntity.setOrderStatus(ORDER_STATUS_WAIT_FOR_PAY);
         Integer result = orderMapper.saveOrderInfo(orderEntity);
         if (result <= 0){
+            log.info("订单预扣减失败");
             throw new BusinessException("保存订单信息失败");
         }
         log.info("结束订单预扣减");
@@ -119,8 +119,7 @@ public class OrderServiceImpl implements IOrderService {
     }
 
 
-    // TODO redis库存预扣减
-    public boolean checkStock(List<SkuStock> skuStockList) {
+    public boolean checkStock(List<SkuStock> skuStockList) throws InterruptedException {
 
         log.info("开始验证库存");
         //按SKU排序
@@ -139,23 +138,26 @@ public class OrderServiceImpl implements IOrderService {
         // 批量查询Redis
         List<Object> stocks = redisTemplate.opsForValue().multiGet(skuRedisKeys);
         if (stocks == null || stocks.isEmpty()){
-            dbTORedis(skuRedisIds,skuRedisKeys);
+            //恢复缓存
+            dbTORedis(skuRedisIds,skuRedisKeys,skuStockList);
         }
+        else {
+            //找出Redis中没有的SKU
+            List<String> noSkuRedisKeys = new ArrayList<>();
+            List<Long> noSkuRedisIds = new ArrayList<>();
+            for (int i = 0; i < stocks.size(); i++) {
+                if (stocks.get(i) == null){
+                    noSkuRedisKeys.add(skuRedisKeys.get(i));
+                    noSkuRedisIds.add(skuRedisIds.get(i));
+                }
+            }
 
-        //找出Redis中没有的SKU
-        List<String> noSkuRedisKeys = new ArrayList<>();
-        List<Long> noSkuRedisIds = new ArrayList<>();
-        for (int i = 0; i < stocks.size(); i++) {
-            if (stocks.get(i) == null){
-                noSkuRedisKeys.add(skuRedisKeys.get(i));
-                noSkuRedisIds.add(skuRedisIds.get(i));
+            //Redis中缺少数据
+            if (!noSkuRedisKeys.isEmpty()){
+                dbTORedis(noSkuRedisIds,noSkuRedisKeys,skuStockList);
             }
         }
 
-        //Redis中缺少数据
-        if (!noSkuRedisKeys.isEmpty()){
-            dbTORedis(noSkuRedisIds,noSkuRedisKeys);
-        }
 
         String luaScript =
                 "for i, key in ipairs(KEYS) do " +
@@ -176,76 +178,100 @@ public class OrderServiceImpl implements IOrderService {
         List<Integer> values = sortedSkuStockList.stream()
                 .map(s -> s.getSaleCount())
                 .toList();
-        long result = (long)redisTemplate.execute(
-                new DefaultRedisScript<>(luaScript, long.class),
-                keys,
-                values.toArray()
-        );
 
-        if (result >= 0){
-            log.info("结束验证库存:库存不足");
-            throw new BusinessException("库存不足:" + sortedSkuStockList.get((int)result - 1).getSkuId());
-        }
-        log.info("结束验证库存");
-        return true;
-    }
+        RLock stockLock = redissonClient.getLock(REDIS_STOCK_LOCK);
 
-    public void rollbackStock(List<SkuStock> skuStockList) {
-        log.info("开始回滚Redis");
-        RLock lock = redissonClient.getLock(REDIS_STOCK_LOCK);
-        try {
-            if (lock.tryLock(3, 10, TimeUnit.SECONDS)) {
-
-                //再次检查SKU是否存在
-                Map<String,Integer> needRollBackSkusMap = new HashMap<>();
-                List<Long> rollBackSkuIds = skuStockList.stream()
-                        .map(SkuStock::getSkuId)
-                        .toList();
-                for (int i = 0; i < rollBackSkuIds.size(); i++) {
-                    //Redis中存在SKU才进行回滚,不存在直接忽略
-                    if (redisTemplate.hasKey(STR_SKU + rollBackSkuIds.get(i))){
-                        needRollBackSkusMap.put(STR_SKU + rollBackSkuIds.get(i) , skuStockList.get(i).getSaleCount());
-                    }
-                }
-                //不存在直接忽略
-                if (needRollBackSkusMap.isEmpty()){
-                    return;
-                }
-                String rollBackLuaScript =
-                        "for i, key in ipairs(KEYS) do " +
-                        "   redis.call('INCRBY', key, ARGV[i]) " +
-                        "end " +
-                        "return -1";
-                //批量写入Redis
-                List<String> keys = new ArrayList<>(needRollBackSkusMap.keySet());
-                List<Integer> values = new ArrayList<>(needRollBackSkusMap.values());
-                long result = (long) redisTemplate.execute(
-                        new DefaultRedisScript<>(rollBackLuaScript, long.class),
+        if (stockLock.tryLock(3, 10, TimeUnit.SECONDS)){
+            try {
+                log.info("开始Redis预扣减");
+                long result = (long)redisTemplate.execute(
+                        new DefaultRedisScript<>(luaScript, long.class),
                         keys,
                         values.toArray()
                 );
+
                 if (result >= 0){
+                    log.info("结束验证库存:库存不足");
+                    throw new BusinessException("库存不足:" + sortedSkuStockList.get((int)result - 1).getSkuId());
+                }
+                log.info("Redis预扣减成功");
+                return true;
+            }
+            finally {
+                if (stockLock.isHeldByCurrentThread()){
+                    log.info("结束Redis预扣减");
+                    stockLock.unlock();
+                }
+            }
+        }
+
+        log.info("结束验证库存");
+        return false;
+    }
+
+    public void rollbackStock(List<SkuStock> skuStockList) throws InterruptedException {
+        RLock rollBackLock = redissonClient.getLock(REDIS_ROLL_BACK_LOCK);
+            log.info("开始回滚Redis");
+            if (rollBackLock.tryLock(3, 10, TimeUnit.SECONDS)) {
+                try {
+                    //再次检查SKU是否存在
+                    Map<String,Integer> needRollBackSkusMap = new HashMap<>();
+                    List<Long> rollBackSkuIds = skuStockList.stream()
+                            .map(SkuStock::getSkuId)
+                            .toList();
+                    for (int i = 0; i < rollBackSkuIds.size(); i++) {
+                        //Redis中存在SKU才进行回滚,不存在直接忽略
+                        if (redisTemplate.hasKey(STR_SKU + rollBackSkuIds.get(i))){
+                            needRollBackSkusMap.put(STR_SKU + rollBackSkuIds.get(i) , skuStockList.get(i).getSaleCount());
+                        }
+                    }
+                    //不存在直接忽略
+                    if (needRollBackSkusMap.isEmpty()){
+                        return;
+                    }
+                    String rollBackLuaScript =
+                            "for i, key in ipairs(KEYS) do " +
+                            "   redis.call('INCRBY', key, ARGV[i]) " +
+                            "end " +
+                            "return -1";
+                    //批量写入Redis
+                    List<String> keys = new ArrayList<>(needRollBackSkusMap.keySet());
+                    List<Integer> values = new ArrayList<>(needRollBackSkusMap.values());
+                    long result = (long) redisTemplate.execute(
+                            new DefaultRedisScript<>(rollBackLuaScript, long.class),
+                            keys,
+                            values.toArray()
+                    );
+                    if (result >= 0){
+                        throw new BusinessException("Redis回滚库存失败");
+                    }
+                    log.info("Redis回滚库存成功");
+                } catch (Exception e) {
+                    //设置中断标志
+                    Thread.currentThread().interrupt();
                     throw new BusinessException("Redis回滚库存失败");
                 }
-                //释放锁
-                lock.unlock();
+                finally {
+                    if (rollBackLock.isHeldByCurrentThread()){
+                    //释放锁
+                    rollBackLock.unlock();
+                    }
+                }
             }
-        } catch (InterruptedException e) {
-            //设置中断标志
-            Thread.currentThread().interrupt();
-            throw new BusinessException("Redis回滚库存失败");
-        }
+            else{
+                rollbackStock(skuStockList);
+            }
         log.info("结束回滚Redis");
     }
 
     // TODO 从数据库中查没有的SKU到Redis中
-    public void dbTORedis(List<Long> noSkuRedisIds , List<String> noSkuRedisKeys) {
-        RLock lock = redissonClient.getLock(REDIS_STOCK_LOCK);
+    public void dbTORedis(List<Long> noSkuRedisIds , List<String> noSkuRedisKeys,List<SkuStock> skuStockList) {
+        RLock redisUpdateLock = redissonClient.getLock(REDIS_STOCK_LOCK);
 
         try {
-            if (lock.tryLock(3, 10, TimeUnit.SECONDS)) {
+            if (redisUpdateLock.tryLock(3, 10, TimeUnit.SECONDS)) {
 
-                // 向redis写入时使用的 multiSetIfAbsent ,可以省略双重检查
+                // 双重检查
                 List<Long> needLoadSkuIds = new ArrayList<>();
                 for (int i = 0; i < noSkuRedisKeys.size(); i++) {
                     if (!redisTemplate.hasKey(noSkuRedisKeys.get(i))) {
@@ -275,16 +301,21 @@ public class OrderServiceImpl implements IOrderService {
 //                    );
 //                }
 
-                //释放锁
-                lock.unlock();
 
             } else {
-                throw new BusinessException("系统繁忙，请稍后重试");
+                checkStock(skuStockList);
+//                throw new BusinessException("系统繁忙，请稍后重试");
             }
         } catch (InterruptedException e) {
             //设置中断标志
             Thread.currentThread().interrupt();
             throw new BusinessException("加载库存失败");
+        }
+        finally {
+            if (redisUpdateLock.isHeldByCurrentThread()) {
+                //释放锁
+                redisUpdateLock.unlock();
+            }
         }
     }
 

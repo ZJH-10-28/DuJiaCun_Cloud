@@ -171,7 +171,8 @@
             SET
                 order_status = #{saleStatus,jdbcType=INTEGER},
                 update_time = CURRENT_TIMESTAMP
-            WHERE order_id = #{orderId,jdbcType=BIGINT};
+            WHERE order_id = #{orderId,jdbcType=BIGINT}
+            AND order_status = 0;
     </update>
 
     <update id="deleteSkuInfo" parameterType="java.lang.Long">

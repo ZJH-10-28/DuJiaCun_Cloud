@@ -1,12 +1,14 @@
 package dujiacun.orderservice.controller;
 
 import dujiacun.common.constant.UserThreadLocal;
+import dujiacun.common.error.ErrorCode;
 import dujiacun.common.util.BeanConvertUtil;
 import dujiacun.orderservice.config.OrderProperties;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
 import dujiacun.orderservice.entity.dto.OrderRequestDto;
 import dujiacun.orderservice.entity.dto.OrderResponseDto;
 import dujiacun.orderservice.service.IOrderService;
+import io.seata.spring.annotation.GlobalTransactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -25,17 +27,18 @@ public class OrderController {
     private OrderProperties orderProperties;
 
     @PostMapping("/orderInfo")
-    public CommonResult<Long> createOrder(@Validated @RequestBody OrderRequestDto orderRequestDto) {
+    public CommonResult<Long> createOrder(@Validated @RequestBody OrderRequestDto orderRequestDto) throws InterruptedException {
         OrderParamBo orderParamBo = BeanConvertUtil.convert(orderRequestDto, OrderParamBo.class);
         boolean isStock = orderService.checkStock(orderParamBo.getSkuStockList());
         if (!isStock){
             return CommonResult.error("库存不足");
         }
-        Long orderId = orderService.createOrder(Long.parseLong(UserThreadLocal.getUser()), orderParamBo).getData();
-        if (orderId == null) {
+        CommonResult<Long> result = orderService.createOrder(Long.parseLong(UserThreadLocal.getUser()), orderParamBo);
+        if (result.getCode() != ErrorCode.SUCCESS.getCode()) {
+            orderService.rollbackStock(orderParamBo.getSkuStockList());
             return CommonResult.error("订单创建失败");
         }
-        return orderService.afterCreateOrder(orderId);
+        return orderService.afterCreateOrder(result.getData());
     }
 
     @GetMapping("/orderInfo")

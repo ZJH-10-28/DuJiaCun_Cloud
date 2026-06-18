@@ -34,9 +34,7 @@
         <if test="skuParamBo.categoryId != null">
             AND category_id = #{skuParamBo.categoryId,jdbcType=INTEGER}
         </if>
-        <if test="skuParamBo.saleCount != null">
-            ORDER BY sale_count DESC
-        </if>
+            ORDER BY sale_count DESC , sku_stock_count DESC , sku_price ASC
     </select>
 
     <select id="getSkuInfoById" parameterType="java.lang.Long" resultMap="resultMap">

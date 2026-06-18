@@ -45,15 +45,11 @@ public class OrderController {
         )){
             return CommonResult.error(ErrorCode.TOO_MANY_REQUESTS);
         }
-        log.info("Redis-checkStock");
         OrderParamBo orderParamBo = BeanConvertUtil.convert(orderRequestDto, OrderParamBo.class);
         CommonResult checkResult = orderService.checkStock(orderParamBo.getSkuStockList());
-        log.info("Redis-over");
         if (checkResult.getCode() != ErrorCode.SUCCESS.getCode()){
-            log.info("Redis-error");
             return CommonResult.error("订单预扣减失败");
         }
-        log.info("Order-createOrder");
         CommonResult<Long> result = createOrderService.createOrder(Long.parseLong(UserThreadLocal.getUserId()), orderParamBo);
         if (result.getCode() != ErrorCode.SUCCESS.getCode()) {
             orderService.rollbackStock(orderParamBo.getSkuStockList());

@@ -21,8 +21,8 @@ public class SkuController {
     @Autowired
     private RedissonClient redissonClient;
 
-    @GetMapping("/skuList")
-    public CommonResult<List<SkuResponseDto>> getSkuInfo(SkuRequestDto skuRequestDto) {
+    @PostMapping("/skuList")
+    public CommonResult<List<SkuResponseDto>> getSkuInfo(@RequestBody SkuRequestDto skuRequestDto) {
         SkuParamBo skuParamBo = BeanConvertUtil.convert(skuRequestDto, SkuParamBo.class);
         List<SkuResponseDto> list = skuService.getSkuInfo(skuParamBo).getData();
         return CommonResult.success(list);

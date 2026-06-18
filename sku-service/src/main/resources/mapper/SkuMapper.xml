@@ -26,10 +26,10 @@
         FROM sku_master
         WHERE is_deleted = 0
         <if test="skuParamBo.skuId != null">
-            AND sku_id = #{skuParamBo.skuId,jdbcType=BIGINT}
+            AND (sku_id::TEXT) LIKE '%' || #{skuParamBo.skuId,jdbcType=BIGINT} || '%'
         </if>
-        <if test="skuParamBo.skuName != null">
-            AND sku_name = #{skuParamBo.skuName,jdbcType=VARCHAR}
+        <if test="skuParamBo.skuName != null and skuParamBo.skuName != '' ">
+            AND sku_name LIKE  '%' || #{skuParamBo.skuName,jdbcType=VARCHAR} || '%'
         </if>
         <if test="skuParamBo.categoryId != null">
             AND category_id = #{skuParamBo.categoryId,jdbcType=INTEGER}

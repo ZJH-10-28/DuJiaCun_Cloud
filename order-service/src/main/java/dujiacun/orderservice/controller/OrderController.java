@@ -7,14 +7,19 @@ import dujiacun.orderservice.config.OrderProperties;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
 import dujiacun.orderservice.entity.dto.OrderRequestDto;
 import dujiacun.orderservice.entity.dto.OrderResponseDto;
+import dujiacun.orderservice.service.ICreateOrderService;
 import dujiacun.orderservice.service.IOrderService;
 import io.seata.spring.annotation.GlobalTransactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import dujiacun.common.CommonResult;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @RestController
 @RequestMapping("/orders")
 public class OrderController {
@@ -22,18 +27,34 @@ public class OrderController {
     @Autowired
     private IOrderService orderService;
 
+    @Autowired
+    private ICreateOrderService createOrderService;
+
     //订单服务配置:Nacos动态配置
     @Autowired
     private OrderProperties orderProperties;
 
+    @Autowired
+    private RedisTemplate redisTemplate;
+
     @PostMapping("/orderInfo")
     public CommonResult<Long> createOrder(@Validated @RequestBody OrderRequestDto orderRequestDto) throws InterruptedException {
-        OrderParamBo orderParamBo = BeanConvertUtil.convert(orderRequestDto, OrderParamBo.class);
-        boolean isStock = orderService.checkStock(orderParamBo.getSkuStockList());
-        if (!isStock){
-            return CommonResult.error("库存不足");
+        //防抖
+        if (Boolean.FALSE.equals(
+                redisTemplate.opsForValue().setIfAbsent("incr:" + UserThreadLocal.getIncrementId(), UserThreadLocal.getIncrementId(), 3000, TimeUnit.MILLISECONDS)
+        )){
+            return CommonResult.error(ErrorCode.TOO_MANY_REQUESTS);
         }
-        CommonResult<Long> result = orderService.createOrder(Long.parseLong(UserThreadLocal.getUser()), orderParamBo);
+        log.info("Redis-checkStock");
+        OrderParamBo orderParamBo = BeanConvertUtil.convert(orderRequestDto, OrderParamBo.class);
+        CommonResult checkResult = orderService.checkStock(orderParamBo.getSkuStockList());
+        log.info("Redis-over");
+        if (checkResult.getCode() != ErrorCode.SUCCESS.getCode()){
+            log.info("Redis-error");
+            return CommonResult.error("订单预扣减失败");
+        }
+        log.info("Order-createOrder");
+        CommonResult<Long> result = createOrderService.createOrder(Long.parseLong(UserThreadLocal.getUserId()), orderParamBo);
         if (result.getCode() != ErrorCode.SUCCESS.getCode()) {
             orderService.rollbackStock(orderParamBo.getSkuStockList());
             return CommonResult.error("订单创建失败");

@@ -29,6 +29,11 @@ public interface SysConstant {
     String STR_USER_ID = "userId";
 
     /**
+     * session中存储的用户ID
+     */
+    String STR_INCREMENT_ID = "incrementId";
+
+    /**
      * session中存储的用户名称
      */
     String STR_USER_NAME = "userName";

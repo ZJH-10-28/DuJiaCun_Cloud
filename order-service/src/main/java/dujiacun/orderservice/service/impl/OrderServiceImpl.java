@@ -10,20 +10,16 @@ import dujiacun.orderservice.entity.bo.OrderParamBo;
 import dujiacun.orderservice.mapper.OrderMapper;
 import dujiacun.orderservice.service.IOrderService;
 import dujiacun.orderservice.service.feignClient.FeignSkuClient;
-import io.seata.spring.annotation.GlobalTransactional;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -50,41 +46,7 @@ public class OrderServiceImpl implements IOrderService {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
-    @GlobalTransactional(rollbackFor= Exception.class)
-    public CommonResult<Long> createOrder(Long userId , OrderParamBo orderParamBo) throws InterruptedException {
 
-        List<SkuStock> skuStockList = orderParamBo.getSkuStockList();
-        Double orderPrice = 0.0;
-
-        try {
-            //创建订单
-            log.info("开始创建订单");
-            Long orderId = Long.valueOf(
-                    LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
-                            + redisTemplate.opsForValue().increment("STR_ORDER_ID_GENERATOR", 1)
-            );
-            orderParamBo.setOrderId(orderId);
-            orderParamBo.setUserId(userId);
-            //计算金额
-            for (SkuStock skuStock : skuStockList) {
-                orderPrice += skuStock.getSkuPrice() * skuStock.getSaleCount();
-            }
-            orderParamBo.setOrderPrice(Math.round(orderPrice * 100.0) / 100.0);
-            orderParamBo.setOrderStatus(ORDER_STATUS_WAIT_FOR_PAY);
-
-            //保存订单信息到order数据库,标记为预扣减
-            saveOrderInfo(orderParamBo);
-
-            //保存订单明细到sku数据库
-            skuClient.saveSkuDetail(orderParamBo.getOrderId(), skuStockList);
-
-            log.info("结束创建订单");
-            return CommonResult.success("订单创建成功", orderId);
-        } catch (Exception e) {
-            log.info("创建订单失败");
-            return CommonResult.error("订单创建失败");
-        }
-    }
     public CommonResult<Long> afterCreateOrder(Long orderId) {
 
         //TODO
@@ -100,6 +62,7 @@ public class OrderServiceImpl implements IOrderService {
         return CommonResult.success("下单成功",orderId);
     }
 
+    @Transactional
     public void saveOrderInfo(OrderParamBo orderParamBo) {
         log.info("开始订单预扣减");
         OrderEntity orderEntity = BeanConvertUtil.convert(orderParamBo, OrderEntity.class);
@@ -119,7 +82,7 @@ public class OrderServiceImpl implements IOrderService {
     }
 
 
-    public boolean checkStock(List<SkuStock> skuStockList) throws InterruptedException {
+    public CommonResult checkStock(List<SkuStock> skuStockList) throws InterruptedException {
 
         log.info("开始验证库存");
         //按SKU排序
@@ -139,7 +102,7 @@ public class OrderServiceImpl implements IOrderService {
         List<Object> stocks = redisTemplate.opsForValue().multiGet(skuRedisKeys);
         if (stocks == null || stocks.isEmpty()){
             //恢复缓存
-            dbTORedis(skuRedisIds,skuRedisKeys,skuStockList);
+            dbTORedis(skuRedisIds,skuRedisKeys);
         }
         else {
             //找出Redis中没有的SKU
@@ -154,7 +117,7 @@ public class OrderServiceImpl implements IOrderService {
 
             //Redis中缺少数据
             if (!noSkuRedisKeys.isEmpty()){
-                dbTORedis(noSkuRedisIds,noSkuRedisKeys,skuStockList);
+                dbTORedis(noSkuRedisIds,noSkuRedisKeys);
             }
         }
 
@@ -192,10 +155,10 @@ public class OrderServiceImpl implements IOrderService {
 
                 if (result >= 0){
                     log.info("结束验证库存:库存不足");
-                    throw new BusinessException("库存不足:" + sortedSkuStockList.get((int)result - 1).getSkuId());
+                    return CommonResult.error("库存不足:" + sortedSkuStockList.get((int)result - 1).getSkuId());
                 }
                 log.info("Redis预扣减成功");
-                return true;
+                return CommonResult.success("Redis预扣减成功");
             }
             finally {
                 if (stockLock.isHeldByCurrentThread()){
@@ -204,9 +167,10 @@ public class OrderServiceImpl implements IOrderService {
                 }
             }
         }
-
-        log.info("结束验证库存");
-        return false;
+        else {
+            log.info("尝试重新Redis预扣减");
+            return checkStock(skuStockList);
+        }
     }
 
     public void rollbackStock(List<SkuStock> skuStockList) throws InterruptedException {
@@ -265,7 +229,7 @@ public class OrderServiceImpl implements IOrderService {
     }
 
     // TODO 从数据库中查没有的SKU到Redis中
-    public void dbTORedis(List<Long> noSkuRedisIds , List<String> noSkuRedisKeys,List<SkuStock> skuStockList) {
+    public void dbTORedis(List<Long> noSkuRedisIds , List<String> noSkuRedisKeys) {
         RLock redisUpdateLock = redissonClient.getLock(REDIS_STOCK_LOCK);
 
         try {
@@ -303,7 +267,7 @@ public class OrderServiceImpl implements IOrderService {
 
 
             } else {
-                checkStock(skuStockList);
+                dbTORedis(noSkuRedisIds,noSkuRedisKeys);
 //                throw new BusinessException("系统繁忙，请稍后重试");
             }
         } catch (InterruptedException e) {

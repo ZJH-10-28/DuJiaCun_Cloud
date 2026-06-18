@@ -11,9 +11,7 @@ public interface IOrderService {
 
     OrderInfoBo getOrderInfo(OrderParamBo orderParamBo);
 
-    boolean checkStock(List<SkuStock> skuStockList) throws InterruptedException;
-
-    CommonResult<Long> createOrder(Long orderId, OrderParamBo orderParamBo) throws InterruptedException;
+    CommonResult checkStock(List<SkuStock> skuStockList) throws InterruptedException;
 
     CommonResult<Long> afterCreateOrder(Long orderId);
 

@@ -4,6 +4,7 @@
 <mapper namespace="dujiacun.skuservice.mapper.SkuMapper">
     <resultMap id="resultMap" type="dujiacun.skuservice.entity.SkuEntity">
         <id property="skuId" column="sku_id" javaType="java.lang.Long"/>
+        <result property="orderId" column="order_id" javaType="java.lang.Long"/>
         <result property="skuName" column="sku_name" javaType="java.lang.String"/>
         <result  property="skuDescription" column="sku_description" javaType="java.lang.String"/>
         <result  property="categoryId" column="category_id" javaType="java.lang.Integer"/>
@@ -63,6 +64,24 @@
         </foreach>
     </select>
 
+    <select id="getSkuDetailByOrderId" parameterType="java.lang.Long" resultMap="resultMap">
+        SELECT
+        SD.order_id,
+        SM.sku_id,
+        SM.sku_name,
+        SM.sku_price,
+        SD.sale_count,
+        SD.update_time
+
+        FROM sku_master SM
+        LEFT JOIN sku_detail SD
+        ON SM.sku_id = SD.sku_id
+        WHERE SD.order_id IN
+        <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+            #{orderId,jdbcType=BIGINT}
+        </foreach>
+    </select>
+
     <select id="getSkuStocksByIds" resultMap="resultMap">
         SELECT
             SM.sku_id,
@@ -87,7 +106,7 @@
         <foreach collection="skuIds" item="skuId" open="(" separator="," close=")">
              #{skuId,jdbcType=BIGINT}
         </foreach>
-        GROUP BY SM.sku_id,sd.sale_count
+        GROUP BY SM.sku_id,SD.sale_count
     </select>
 
     <insert id="insertSkuInfo" parameterType="dujiacun.skuservice.entity.SkuParamBo">

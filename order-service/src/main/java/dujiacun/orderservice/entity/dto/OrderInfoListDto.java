@@ -1,22 +1,21 @@
-package dujiacun.orderservice.entity;
+package dujiacun.orderservice.entity.dto;
 
+import dujiacun.orderservice.entity.SkuResponseDto;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
-public class OrderEntity {
+public class OrderInfoListDto {
 
     private Long orderId;
 
-    private Long userId;
-
     private Double orderPrice;
 
-    /**
-     * 订单状态 0:待支付 1:已完成 2:已取消
-     */
     private Integer orderStatus;
 
     private LocalDateTime createTime;
+
+    List<SkuResponseDto> skuList;
 }

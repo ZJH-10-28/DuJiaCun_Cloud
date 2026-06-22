@@ -7,6 +7,10 @@ import java.time.LocalDateTime;
 @Data
 public class SkuResponseDto {
     /**
+     * 订单id
+     */
+    private Long orderId;
+    /**
      * 商品id
      */
     private Long skuId;

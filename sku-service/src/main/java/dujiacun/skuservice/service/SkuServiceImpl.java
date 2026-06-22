@@ -60,6 +60,30 @@ public class SkuServiceImpl implements ISkuService{
     }
 
     @Override
+    public CommonResult<Map<Long,List<SkuResponseDto>>> getSkuDetailByOrderId(List<Long> orderIds) {
+        Map<Long,List<SkuResponseDto>> skuMap = new HashMap<>();
+
+        List<SkuEntity> skuEntityResult = skuMapper.getSkuDetailByOrderId(orderIds);
+        if (skuEntityResult == null || skuEntityResult.isEmpty()){
+            return CommonResult.error(ErrorCode.FAILED.getCode(), "无订单信息");
+        }
+
+        for (SkuEntity skuEntity : skuEntityResult){
+            List<SkuResponseDto> list = new ArrayList<>();
+            SkuResponseDto skuResponseDto = BeanConvertUtil.convert(skuEntity, SkuResponseDto.class);
+
+            if (skuMap.containsKey(skuResponseDto.getOrderId())){
+                list = skuMap.get(skuResponseDto.getOrderId());
+            }
+
+            list.add(skuResponseDto);
+            skuMap.put(skuResponseDto.getOrderId(),list);
+
+        }
+        return CommonResult.success(skuMap);
+    }
+
+    @Override
     public CommonResult<String> insertSkuInfo(SkuParamBo skuParamBo) {
         int result = skuMapper.insertSkuInfo(skuParamBo,NOT_DELETED);
         if(result <= 0){

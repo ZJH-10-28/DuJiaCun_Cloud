@@ -7,6 +7,7 @@ import dujiacun.orderservice.entity.OrderEntity;
 import dujiacun.orderservice.entity.SkuStock;
 import dujiacun.orderservice.entity.bo.OrderInfoBo;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
+import dujiacun.orderservice.entity.dto.OrderResponseDto;
 import dujiacun.orderservice.mapper.OrderMapper;
 import dujiacun.orderservice.service.IOrderService;
 import dujiacun.orderservice.service.feignClient.FeignSkuClient;
@@ -79,6 +80,17 @@ public class OrderServiceImpl implements IOrderService {
 //    @Async("orderTaskExecutor") // 指定线程池
     public OrderInfoBo getOrderInfo(OrderParamBo orderParamBo) {
         return  BeanConvertUtil.convert(orderMapper.getOrderInfo(orderParamBo),OrderInfoBo.class);
+    }
+
+    @Override
+    public List<OrderResponseDto> getOrderInfoByUserId(Long userId) {
+        List<OrderEntity> orderEntityList = orderMapper.getOrderInfoByUserId(userId);
+        List<OrderResponseDto> orderResponseDtoList = new ArrayList<>();
+        for (OrderEntity orderEntity : orderEntityList){
+            OrderResponseDto orderResponseDto = BeanConvertUtil.convert(orderEntity, OrderResponseDto.class);
+            orderResponseDtoList.add(orderResponseDto);
+        }
+        return orderResponseDtoList;
     }
 
 

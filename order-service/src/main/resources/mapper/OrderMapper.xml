@@ -17,6 +17,13 @@
         WHERE order_id = #{orderParamBo.orderId,jdbcType=BIGINT}
     </select>
 
+    <select id="getOrderInfoByUserId" parameterType="java.lang.Long" resultMap="resultMap">
+        SELECT order_id, order_price, order_status, create_time
+        FROM order_info
+        WHERE user_id = #{userId,jdbcType=BIGINT}
+        ORDER BY update_time DESC
+    </select>
+
     <insert id="saveOrderInfo" parameterType="dujiacun.orderservice.entity.OrderEntity">
         INSERT INTO
             order_info

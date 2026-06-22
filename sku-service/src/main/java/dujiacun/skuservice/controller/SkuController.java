@@ -49,6 +49,11 @@ public class SkuController {
         return skuService.saveSkuDetail(orderId,skuStockList);
     }
 
+    @PostMapping("/skuDetailByOrderId")
+    public CommonResult<Map<Long,List<SkuResponseDto>>> getSkuDetailByOrderId(@RequestBody List<Long> orderId) {
+        return skuService.getSkuDetailByOrderId(orderId);
+    }
+
     @PostMapping("/updateSkuInfo")
     public CommonResult<String> updateSkuInfo(SkuRequestDto skuRequestDto) {
         SkuParamBo skuParamBo = BeanConvertUtil.convert(skuRequestDto, SkuParamBo.class);

@@ -14,6 +14,8 @@ public interface ISkuService {
 
     Map<Long, Integer> getSkuStocksByIds(List<Long> skuIds);
 
+    CommonResult<Map<Long,List<SkuResponseDto>>> getSkuDetailByOrderId(List<Long> orderIds);
+
     CommonResult<String> insertSkuInfo(SkuParamBo skuParamBo);
 
     CommonResult<String> saveSkuDetail(Long orderId,List<SkuStock> skuStockList);

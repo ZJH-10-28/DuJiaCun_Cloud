@@ -15,6 +15,8 @@ public interface SkuMapper {
 
     List<SkuEntity> getSkuInfoById(@Param("skuIds") List<Long> skuIds);
 
+    List<SkuEntity> getSkuDetailByOrderId(@Param("orderIds") List<Long> orderIds);
+
     List<SkuEntity> getSkuStocksByIds(@Param("skuIds") List<Long> skuIds);
 
     int insertSkuInfo(@Param("skuParamBo") SkuParamBo skuParamBo, @Param("deleteStatus") Integer deleteStatus);

@@ -1,5 +1,7 @@
 package dujiacun.orderservice.controller;
 
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageInfo;
 import dujiacun.common.constant.UserThreadLocal;
 import dujiacun.common.error.ErrorCode;
 import dujiacun.common.util.BeanConvertUtil;
@@ -7,6 +9,7 @@ import dujiacun.orderservice.config.OrderProperties;
 import dujiacun.orderservice.entity.SkuResponseDto;
 import dujiacun.orderservice.entity.UserEntity;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
+import dujiacun.orderservice.entity.dto.OrderInfoByUserIdDto;
 import dujiacun.orderservice.entity.dto.OrderInfoListDto;
 import dujiacun.orderservice.entity.dto.OrderRequestDto;
 import dujiacun.orderservice.entity.dto.OrderResponseDto;
@@ -68,14 +71,15 @@ public class OrderController {
     }
 
     @PostMapping("/orderInfoByUserId")
-    public CommonResult<List<OrderInfoListDto>> getOrderInfoByUserId(@RequestBody UserEntity userEntity) {
-        List<OrderInfoListDto> orderInfoListDtoList = new ArrayList<>();
-
-        List<OrderResponseDto> orderResponseDtoList = orderService.getOrderInfoByUserId(userEntity.getUserId());
-        if (orderResponseDtoList == null || orderResponseDtoList.isEmpty()){
+    public CommonResult<PageInfo<OrderInfoListDto>> getOrderInfoByUserId(
+            @RequestBody OrderInfoByUserIdDto orderInfoByUserIdDto
+    ) {
+        
+        PageInfo<OrderResponseDto> orderResponsePageInfo = orderService.getOrderInfoByUserId(orderInfoByUserIdDto.getPageNum(),orderInfoByUserIdDto.getPageSize(),orderInfoByUserIdDto.getUserId());
+        if (orderResponsePageInfo == null || orderResponsePageInfo.getList().isEmpty()){
             return CommonResult.error("无订单信息");
         }
-        List<Long> orderIds = orderResponseDtoList.stream()
+        List<Long> orderIds = orderResponsePageInfo.getList().stream()
                 .map(OrderResponseDto::getOrderId)
                 .toList();
 
@@ -84,7 +88,8 @@ public class OrderController {
             return CommonResult.error("无商品信息");
         }
 
-        for (OrderResponseDto orderResponseDto : orderResponseDtoList) {
+        List<OrderInfoListDto> orderInfoListDtoList = new ArrayList<>();
+        for (OrderResponseDto orderResponseDto : orderResponsePageInfo.getList()) {
             OrderInfoListDto orderInfoListDto = new OrderInfoListDto();
             orderInfoListDto.setOrderId(orderResponseDto.getOrderId());
             orderInfoListDto.setOrderPrice(orderResponseDto.getOrderPrice());
@@ -93,7 +98,12 @@ public class OrderController {
             orderInfoListDto.setSkuList(skuMapList.get(orderResponseDto.getOrderId()));
             orderInfoListDtoList.add(orderInfoListDto);
         }
-        return CommonResult.success(orderInfoListDtoList);
+        PageInfo<OrderInfoListDto> resultPageInfo = new PageInfo<>(orderInfoListDtoList);
+        resultPageInfo.setTotal(orderResponsePageInfo.getTotal());
+        resultPageInfo.setPageNum(orderResponsePageInfo.getPageNum());
+        resultPageInfo.setPageSize(orderResponsePageInfo.getPageSize());
+
+        return CommonResult.success(resultPageInfo);
     }
 
     @GetMapping("/orderInfo")

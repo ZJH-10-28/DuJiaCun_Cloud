@@ -1,5 +1,7 @@
 package dujiacun.orderservice.service.impl;
 
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import dujiacun.common.CommonResult;
 import dujiacun.common.exception.BusinessException;
 import dujiacun.common.util.BeanConvertUtil;
@@ -83,14 +85,23 @@ public class OrderServiceImpl implements IOrderService {
     }
 
     @Override
-    public List<OrderResponseDto> getOrderInfoByUserId(Long userId) {
+    public PageInfo<OrderResponseDto> getOrderInfoByUserId(Integer pageNum, Integer pageSize, Long userId) {
+        PageHelper.startPage(pageNum, pageSize);
         List<OrderEntity> orderEntityList = orderMapper.getOrderInfoByUserId(userId);
+        PageInfo<OrderEntity> pageInfo = new PageInfo<>(orderEntityList);
+
         List<OrderResponseDto> orderResponseDtoList = new ArrayList<>();
         for (OrderEntity orderEntity : orderEntityList){
             OrderResponseDto orderResponseDto = BeanConvertUtil.convert(orderEntity, OrderResponseDto.class);
             orderResponseDtoList.add(orderResponseDto);
         }
-        return orderResponseDtoList;
+
+        PageInfo<OrderResponseDto> responseDtoPageInfo = new PageInfo<>(orderResponseDtoList);
+        responseDtoPageInfo.setTotal(pageInfo.getTotal()); // 复制正确的总记录数
+        responseDtoPageInfo.setPageNum(pageInfo.getPageNum());
+        responseDtoPageInfo.setPageSize(pageInfo.getPageSize());
+
+        return responseDtoPageInfo;
     }
 
 

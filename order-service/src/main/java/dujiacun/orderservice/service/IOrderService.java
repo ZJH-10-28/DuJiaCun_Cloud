@@ -1,5 +1,6 @@
 package dujiacun.orderservice.service;
 
+import com.github.pagehelper.PageInfo;
 import dujiacun.common.CommonResult;
 import dujiacun.orderservice.entity.SkuStock;
 import dujiacun.orderservice.entity.bo.OrderInfoBo;
@@ -14,7 +15,7 @@ public interface IOrderService {
 
     OrderInfoBo getOrderInfo(OrderParamBo orderParamBo);
 
-    List<OrderResponseDto> getOrderInfoByUserId(Long userId);
+    PageInfo<OrderResponseDto> getOrderInfoByUserId(Integer pageNum, Integer pageSize, Long userId);
 
     CommonResult checkStock(List<SkuStock> skuStockList) throws InterruptedException;
 

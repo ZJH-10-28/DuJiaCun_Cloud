@@ -1,0 +1,36 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    //postgresql
+    runtimeOnly 'org.postgresql:postgresql'
+
+    //mybatis
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
+    testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.3'
+
+    //Nacos
+    implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-nacos-discovery'
+    //Nacos 配置中心
+    implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-nacos-config'
+
+    //openFigen
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+    //Bootstrap 支持（用于加载 bootstrap.yml）
+    implementation 'org.springframework.cloud:spring-cloud-starter-bootstrap'
+
+    //Seata
+    implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-seata'
+
+    //RabbitMQ
+    implementation 'org.springframework.boot:spring-boot-starter-amqp'
+
+    //common工具类
+    implementation project(':common')
+
+}

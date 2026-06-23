@@ -1,21 +1,18 @@
 package dujiacun.userservice.entity.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.util.Date;
 @Data
 public class UserRequestDto {
+    @NotNull
     private Long userId;
+    @NotNull
     private String userName;
+    @NotNull
     private String passWord;
+    private Integer isAdmin;
     private Date lastLoginDate;
 
-    public UserRequestDto(){};
-
-    public UserRequestDto(Long userId,String userName,String passWord,Date lastLoginDate) {
-        this.userId = userId;
-        this.userName = userName;
-        this.passWord = passWord;
-        this.lastLoginDate = lastLoginDate;
-    }
 }

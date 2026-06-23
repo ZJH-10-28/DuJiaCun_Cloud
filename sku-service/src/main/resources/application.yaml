@@ -1,0 +1,78 @@
+server:
+  port: 7070
+
+spring:
+  application:
+    name: sku-service
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 3000 # 连接超时3秒
+            read-timeout: 5000 # 读取超时5秒
+  datasource:
+    url: jdbc:postgresql://localhost:5432/DuJiaCun_Cloud_Sku
+    username: postgres
+    password: root
+    driver-class-name: org.postgresql.Driver
+  data:
+    redis:
+      host: 192.168.0.152
+      port: 6379
+      password: root
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: zjh
+    password: root
+    virtual-host: zjh_host      # 虚拟主机
+    # 生产者可靠性配置
+    publisher-confirm-type: correlated  # 开启异步生产者确认
+    publisher-returns: true             # 消息路由失败时回调
+    template:
+      mandatory: true                 # 强制触发returns回调
+    # 消费者可靠性配置
+    listener:
+      simple:
+        acknowledge-mode: manual      # 关闭自动ACK: 必须手动ACK，避免消息丢失
+        prefetch: 5                  # 单次拉取消息数，防消费者过载
+        retry:
+          enabled: true              # 开启消费失败重试
+          max-attempts: 3            # 最大重试次数
+
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+seata:
+  enable-auto-data-source-proxy: true
+  store-mode: db
+  tx-service-group: default_tx_group
+
+  service:
+    vgroup-mapping:
+      default_tx_group: default
+    grouplist:
+      default: 127.0.0.1:8091
+    timeout: 5000 # 默认超时时间 5 秒
+  registry:
+    type: file
+  config:
+    type: file
+
+  client:
+    rm:
+      # 启用AT模式数据源代理（默认true，必须显式声明）
+      data-source-proxy-mode: AT
+      # 防悬挂必需：上报分支事务状态
+      report-success-enable: true
+      # 全局锁重试参数（解决并发冲突）
+      lock:
+        retry-interval: 10        # 重试间隔（毫秒）
+        retry-times: 30           # 最大重试次数
+
+
+

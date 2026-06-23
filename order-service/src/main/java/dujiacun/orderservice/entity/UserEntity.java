@@ -1,0 +1,13 @@
+package dujiacun.orderservice.entity;
+
+import lombok.Data;
+
+import java.util.Date;
+
+@Data
+public class UserEntity {
+    private Long userId;
+    private String userName;
+    private String passWord;
+    private Date lastLoginDate;
+}

@@ -4,14 +4,38 @@
 <mapper namespace="dujiacun.orderservice.mapper.OrderMapper">
 <resultMap id="resultMap" type="dujiacun.orderservice.entity.OrderEntity">
     <id property="orderId" column="order_id" javaType="java.lang.Long"/>
-    <result  property="orderName" column="order_name" javaType="java.lang.String"/>
-    <result  property="orderPrice" column="order_price" javaType="java.lang.Double"/>
-    <result  property="orderNum" column="order_num" javaType="java.lang.Integer"/>
     <result  property="userId" column="user_id" javaType="java.lang.Long"/>
+    <result  property="orderPrice" column="order_price" javaType="java.lang.Double"/>
+    <result  property="orderStatus" column="order_status" javaType="java.lang.Integer"/>
+    <result  property="createTime" column="create_time" javaType="java.time.LocalDateTime"/>
+    <result  property="updateTime" column="update_time" javaType="java.time.LocalDateTime"/>
 </resultMap>
+
     <select id="getOrderInfo" parameterType="dujiacun.orderservice.entity.bo.OrderParamBo" resultMap="resultMap">
-        SELECT order_id, order_name, order_price,order_num,user_id
-        FROM order_master
+        SELECT order_id, user_id, order_price, create_time
+        FROM order_info
         WHERE order_id = #{orderParamBo.orderId,jdbcType=BIGINT}
     </select>
+
+    <select id="getOrderInfoByUserId" parameterType="java.lang.Long" resultMap="resultMap">
+        SELECT order_id, order_price, order_status, create_time
+        FROM order_info
+        WHERE user_id = #{userId,jdbcType=BIGINT}
+        ORDER BY update_time DESC
+    </select>
+
+    <insert id="saveOrderInfo" parameterType="dujiacun.orderservice.entity.OrderEntity">
+        INSERT INTO
+            order_info
+        (order_id, user_id, order_price, order_status, create_time, update_time)
+
+        VALUES (
+            #{orderEntity.orderId,jdbcType=BIGINT},
+            #{orderEntity.userId,jdbcType=BIGINT},
+            #{orderEntity.orderPrice,jdbcType=DOUBLE},
+            #{orderEntity.orderStatus,jdbcType=INTEGER},
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP
+        )
+    </insert>
 </mapper>

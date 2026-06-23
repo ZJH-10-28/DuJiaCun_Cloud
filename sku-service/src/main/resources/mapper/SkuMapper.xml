@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dujiacun.skuservice.mapper.SkuMapper">
+    <resultMap id="resultMap" type="dujiacun.skuservice.entity.SkuEntity">
+        <id property="skuId" column="sku_id" javaType="java.lang.Long"/>
+        <result property="orderId" column="order_id" javaType="java.lang.Long"/>
+        <result property="skuName" column="sku_name" javaType="java.lang.String"/>
+        <result  property="skuDescription" column="sku_description" javaType="java.lang.String"/>
+        <result  property="categoryId" column="category_id" javaType="java.lang.Integer"/>
+        <result  property="skuPrice" column="sku_price" javaType="java.lang.Double"/>
+        <result  property="saleCount" column="sale_count" javaType="java.lang.Integer"/>
+        <result  property="skuStockCount" column="sku_stock_count" javaType="java.lang.Integer"/>
+        <result  property="skuTotalStockCount" column="sku_total_stock_count" javaType="java.lang.Integer"/>
+        <result  property="skuStatus" column="sku_status" javaType="java.lang.Integer"/>
+        <result  property="createTime" column="create_time" javaType="java.time.LocalDateTime"/>
+        <result  property="createUser" column="create_user" javaType="java.lang.Long"/>
+        <result  property="updateTime" column="update_time" javaType="java.time.LocalDateTime"/>
+        <result  property="updateUser" column="update_user" javaType="java.lang.Long"/>
+        <result  property="isDeleted" column="is_deleted" javaType="java.lang.Integer"/>
+    </resultMap>
+
+    <select id="getSkuInfo" parameterType="dujiacun.skuservice.entity.SkuParamBo" resultMap="resultMap">
+        SELECT
+            sku_id,sku_name, sku_description, category_id, sku_price,
+            sale_count, sku_stock_count
+        FROM sku_master
+        WHERE is_deleted = 0
+        <if test="skuParamBo.skuId != null">
+            AND (sku_id::TEXT) LIKE '%' || #{skuParamBo.skuId,jdbcType=BIGINT} || '%'
+        </if>
+        <if test="skuParamBo.skuName != null and skuParamBo.skuName != '' ">
+            AND sku_name LIKE  '%' || #{skuParamBo.skuName,jdbcType=VARCHAR} || '%'
+        </if>
+        <if test="skuParamBo.categoryId != null">
+            AND category_id = #{skuParamBo.categoryId,jdbcType=INTEGER}
+        </if>
+            ORDER BY sale_count DESC , sku_stock_count DESC , sku_price ASC
+    </select>
+
+    <select id="getSkuInfoById" parameterType="java.lang.Long" resultMap="resultMap">
+        SELECT
+        SM.sku_id,
+        SM.sku_name,
+        SM.sku_description,
+        SM.category_id,
+        SM.sku_price,
+        SM.sale_count,
+        CASE WHEN
+            SM.sku_total_stock_count - SM.sale_count - COALESCE(SD.sale_count,0) != SM.sku_stock_count
+        THEN -1
+        ELSE
+            SM.sku_total_stock_count - SM.sale_count - COALESCE(SD.sale_count,0)
+        END AS sku_stock_count
+
+        FROM sku_master SM
+        LEFT JOIN sku_detail SD
+        ON SM.sku_id = SD.sku_id
+        WHERE SM.sku_status = 1
+        AND SM.is_deleted = 0
+        AND SM.sku_id IN
+        <foreach collection="skuIds" item="skuId" open="(" separator="," close=")">
+            #{skuId,jdbcType=BIGINT}
+        </foreach>
+    </select>
+
+    <select id="getSkuDetailByOrderId" parameterType="java.lang.Long" resultMap="resultMap">
+        SELECT
+        SD.order_id,
+        SM.sku_id,
+        SM.sku_name,
+        SM.sku_price,
+        SD.sale_count,
+        SD.update_time
+
+        FROM sku_master SM
+        LEFT JOIN sku_detail SD
+        ON SM.sku_id = SD.sku_id
+        WHERE SD.order_id IN
+        <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+            #{orderId,jdbcType=BIGINT}
+        </foreach>
+    </select>
+
+    <select id="getSkuStocksByIds" resultMap="resultMap">
+        SELECT
+            SM.sku_id,
+            SM.sku_name,
+            SM.sku_description,
+            SM.sku_price,
+            SM.sale_count,
+        CASE WHEN
+            SM.sku_total_stock_count - SM.sale_count <![CDATA[ < ]]> sum(COALESCE(SD.sale_count,0))
+        THEN -1
+        ELSE
+            SM.sku_total_stock_count - SM.sale_count - sum(COALESCE(SD.sale_count,0))
+        END AS sku_stock_count
+
+        FROM sku_master SM
+        LEFT JOIN sku_detail SD
+        ON SM.sku_id = SD.sku_id
+        AND SD.order_status = 0
+        WHERE SM.sku_status = 1
+        AND SM.is_deleted = 0
+        AND SM.sku_id IN
+        <foreach collection="skuIds" item="skuId" open="(" separator="," close=")">
+             #{skuId,jdbcType=BIGINT}
+        </foreach>
+        GROUP BY SM.sku_id,SD.sale_count
+    </select>
+
+    <insert id="insertSkuInfo" parameterType="dujiacun.skuservice.entity.SkuParamBo">
+        INSERT INTO
+            sku_master
+            (sku_id,sku_name, sku_description, category_id, sku_price,
+            sale_count, sku_stock_count, sku_total_stock_count, sku_status, create_time, create_user,
+            update_time, update_user,is_deleted )
+        VALUES(
+            #{skuParamBo.skuId,jdbcType=BIGINT},
+            #{skuParamBo.skuName,jdbcType=VARCHAR},
+            #{skuParamBo.skuDescription,jdbcType=VARCHAR},
+            #{skuParamBo.categoryId,jdbcType=INTEGER},
+            #{skuParamBo.skuPrice,jdbcType=DOUBLE},
+            #{skuParamBo.saleCount,jdbcType=INTEGER},
+            #{skuParamBo.skuStockCount,jdbcType=INTEGER},
+            #{skuParamBo.skuTotalStockCount,jdbcType=INTEGER},
+            #{skuParamBo.skuStatus,jdbcType=INTEGER},
+            CURRENT_TIMESTAMP,
+            #{skuParamBo.createUser,jdbcType=BIGINT},
+            CURRENT_TIMESTAMP,
+            #{skuParamBo.createUser,jdbcType=BIGINT},
+            #{deleteStatus,jdbcType=INTEGER}
+        )
+    </insert>
+
+    <insert id="saveSkuDetail">
+        INSERT INTO
+        sku_detail
+        (order_id, sku_id, sale_count, coupon_id, order_status, create_time, update_time)
+
+        VALUES
+        <foreach collection="skuStockList" item="item" separator=",">
+            (
+            #{orderId,jdbcType=BIGINT},
+            #{item.skuId,jdbcType=BIGINT},
+            #{item.saleCount,jdbcType=INTEGER},
+            #{item.couponId,jdbcType=BIGINT},
+            #{orderStatus,jdbcType=INTEGER},
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP
+            )
+        </foreach>
+    </insert>
+
+    <update id="updateSkuInfo" parameterType="dujiacun.skuservice.entity.SkuParamBo">
+        UPDATE
+            sku_master
+        SET
+            sku_name = #{skuParamBo.skuName,jdbcType=VARCHAR},
+            sku_description = #{skuParamBo.skuDescription,jdbcType=VARCHAR},
+            category_id = #{skuParamBo.categoryId,jdbcType=INTEGER},
+            sku_price = #{skuParamBo.skuPrice,jdbcType=DOUBLE},
+            sale_count = #{skuParamBo.saleCount,jdbcType=INTEGER},
+            sku_stock_count = #{skuParamBo.skuStockCount,jdbcType=INTEGER},
+            sku_total_stock_count = #{skuParamBo.skuTotalStockCount,jdbcType=INTEGER},
+            sku_status = #{skuParamBo.skuStatus,jdbcType=INTEGER},
+            update_time = CURRENT_TIMESTAMP,
+            update_user = #{skuParamBo.updateUser,jdbcType=BIGINT}
+        WHERE
+            sku_id = #{skuParamBo.skuId,jdbcType=BIGINT}
+    </update>
+
+    <update id="saleSkuInfo">
+            UPDATE
+                sku_master SM
+            SET
+                sku_stock_count = SM.sku_stock_count - SD.sale_count,
+                sale_count = SM.sale_count + SD.sale_count,
+                update_time = CURRENT_TIMESTAMP
+            FROM sku_detail SD
+            WHERE SM.sku_id = SD.sku_id
+            AND SD.order_status = 0
+            AND SD.order_id = #{orderId,jdbcType=BIGINT}
+            AND SM.sku_stock_count >= SD.sale_count;
+
+            UPDATE
+                sku_detail
+            SET
+                order_status = #{saleStatus,jdbcType=INTEGER},
+                update_time = CURRENT_TIMESTAMP
+            WHERE order_id = #{orderId,jdbcType=BIGINT}
+            AND order_status = 0;
+    </update>
+
+    <update id="deleteSkuInfo" parameterType="java.lang.Long">
+        UPDATE
+            sku_master
+        SET
+            is_deleted = #{deleteStatus,jdbcType=INTEGER},
+            update_time = CURRENT_TIMESTAMP
+        WHERE 1=1
+        AND sku_id IN
+        <foreach collection="skuIds" item="skuId" open="(" separator="," close=")">
+            #{skuId,jdbcType=BIGINT}
+        </foreach>
+    </update>
+
+</mapper>

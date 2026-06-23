@@ -1,27 +1,22 @@
 package dujiacun.orderservice.entity;
 
-import dujiacun.feignclient.entity.UserEntity;
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 public class OrderEntity {
+
     private Long orderId;
-    private String orderName;
-    private Double orderPrice;
-    private Integer orderNum;
+
     private Long userId;
-    private UserEntity userEntity;
 
-    public OrderEntity(){};
+    private Double orderPrice;
 
-    public OrderEntity(Long orderId, String orderName, Double orderPrice,Integer orderNum,Long userId,UserEntity userEntity) {
-        this.orderId = orderId;
-        this.orderName = orderName;
-        this.orderPrice = orderPrice;
-        this.orderNum = orderNum;
-        this.userId = userId;
-        this.userEntity = userEntity;
-    }
+    /**
+     * 订单状态 0:待支付 1:已完成 2:已取消
+     */
+    private Integer orderStatus;
+
+    private LocalDateTime createTime;
 }

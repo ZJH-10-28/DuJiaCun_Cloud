@@ -4,11 +4,10 @@ http://localhost:12345/order/1?name=dujiacun
 ``` lua
 DuJiaCun_Cloud
 ├── gateway -- 网关模块
-├── feignClient -- FeignClient模块
 ├── order-service -- 订单服务
 ├── user-service -- 用户服务
-├──
-└── config -- 配置中心存储的配置
+├── sku-service -- 商品服务
+└── common -- 通用工具类
 ```
 # @Transactional 事务回滚
     Spring 默认只在遇到 RuntimeException 时自动回滚事务，捕获 Exception 不会回滚 , 所以自定义异常要继承 RuntimeException

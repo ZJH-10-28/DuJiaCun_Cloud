@@ -62,7 +62,7 @@ public class OrderController {
         if (checkResult.getCode() != ErrorCode.SUCCESS.getCode()){
             return CommonResult.error("订单预扣减失败");
         }
-        CommonResult<Long> result = createOrderService.createOrder(Long.parseLong(UserThreadLocal.getUserId()), orderParamBo);
+        CommonResult<Long> result = createOrderService.createOrderWithTransaction(Long.parseLong(UserThreadLocal.getUserId()), orderParamBo);
         if (result.getCode() != ErrorCode.SUCCESS.getCode()) {
             orderService.rollbackStock(orderParamBo.getSkuStockList());
             return CommonResult.error("订单创建失败");

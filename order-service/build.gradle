@@ -38,6 +38,10 @@ dependencies {
     //RabbitMQ
     implementation 'org.springframework.boot:spring-boot-starter-amqp'
 
+    //Sentinel
+    implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-sentinel'
+    implementation 'com.alibaba.csp:sentinel-datasource-nacos'
+
     //common工具类
     implementation project(':common')
 

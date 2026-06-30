@@ -8,12 +8,19 @@ spring:
       nacos:
         enabled: true # Nacos 特有的负载均衡配置 , 关闭变成 Spring Cloud LoadBalancer 的默认策略
     openfeign:
+      sentinel: # 开启Sentinel的集成
+          enabled: true # 必须设置为true，Sentinel才能对Feign接口生效
       client:
         config:
           default: #全局默认设置
 #            retryer: feign.Retryer.NEVER_RETRY # 关闭feign重试
             connect-timeout: 3000 # 连接超时3秒
             read-timeout: 6000 # 读取超时6秒 , 需要大于seata的超时时间
+    sentinel:
+      transport:
+        dashboard: localhost:8050 # sentinel控制台地址
+        eager: true # 启动时立即初始化Sentinel
+
   datasource:
     url: jdbc:postgresql://localhost:5432/DuJiaCun_Cloud_Order
     username: postgres
@@ -82,6 +89,5 @@ seata:
       rollback-retry-count: 3
       # 异步提交超时（毫秒）
       async-commit-timeout: 10000
-
 
 

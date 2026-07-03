@@ -25,6 +25,7 @@ public class SkuServiceImpl implements ISkuService{
 
     @Autowired
     private SkuMapper skuMapper;
+
     @Override
     public CommonResult<List<SkuResponseDto>> getSkuInfo(SkuParamBo skuParamBo) {
         List<SkuResponseDto> list = new ArrayList<>();
@@ -49,6 +50,7 @@ public class SkuServiceImpl implements ISkuService{
         }
         return CommonResult.success("检索完成",skuResponseDtoList);
     }
+
     @Override
     public Map<Long, Integer> getSkuStocksByIds(List<Long> skuIds) {
         Map<Long, Integer> skuStockCountMap = new HashMap<>();
@@ -114,10 +116,20 @@ public class SkuServiceImpl implements ISkuService{
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public CommonResult<String> saleSkuInfo(Long skuId) {
-        int result = skuMapper.saleSkuInfo(skuId,IS_SALE);
-        if(result <= 0){
+        int pendingSkuCount = skuMapper.countPendingSkuDetail(skuId);
+        if (pendingSkuCount <= 0) {
+            throw new BusinessException("库存扣减失败");
+        }
+
+        int masterUpdated = skuMapper.deductSkuMasterByOrderId(skuId);
+        if (masterUpdated != pendingSkuCount) {
+            throw new BusinessException("库存不足或扣减不完整");
+        }
+
+        int detailUpdated = skuMapper.updateSkuDetailStatus(skuId, IS_SALE);
+        if (detailUpdated <= 0) {
             throw new BusinessException("库存扣减失败");
         }
         return CommonResult.success("库存扣减成功");

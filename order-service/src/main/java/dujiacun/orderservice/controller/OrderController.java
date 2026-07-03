@@ -64,7 +64,7 @@ public class OrderController {
         }
         CommonResult<Long> result = createOrderService.createOrderWithTransaction(Long.parseLong(UserThreadLocal.getUserId()), orderParamBo);
         if (result.getCode() != ErrorCode.SUCCESS.getCode()) {
-            orderService.rollbackStock(orderParamBo.getSkuStockList());
+//            orderService.rollbackStock(orderParamBo.getSkuStockList());
             return CommonResult.error("订单创建失败");
         }
         return orderService.afterCreateOrder(result.getData());

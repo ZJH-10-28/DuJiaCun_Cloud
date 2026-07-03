@@ -40,8 +40,14 @@ public class CreateOrderServiceImpl implements ICreateOrderService {
     private ICreateOrderService createOrderService;
 
     @GlobalTransactional(rollbackFor = Exception.class)
-    public CommonResult<Long> createOrderWithTransaction(Long userId, OrderParamBo orderParamBo) {
-        return createOrderService.createOrder(userId, orderParamBo);
+    public CommonResult<Long> createOrderWithTransaction(Long userId, OrderParamBo orderParamBo) throws InterruptedException {
+        try {
+            return createOrderService.createOrder(userId, orderParamBo);
+        } catch (Exception e) {
+            log.error("创建订单异常,执行Redis回滚", e);
+            orderService.rollbackStock(orderParamBo.getSkuStockList());
+            throw new BusinessException("订单创建失败");
+        }
     }
 
     @SentinelResource(
@@ -94,7 +100,7 @@ public class CreateOrderServiceImpl implements ICreateOrderService {
      */
     public CommonResult<Long> handleDeductStockBlock(Long userId, OrderParamBo orderParamBo, BlockException ex) {
         log.warn("创建订单被Sentinel限流或熔断,userId={},reason={}", userId, ex.getMessage());
-        return CommonResult.error("系统正忙，请稍后再试");
+        throw new BusinessException("系统正忙，请稍后再试");
     }
 
     /**

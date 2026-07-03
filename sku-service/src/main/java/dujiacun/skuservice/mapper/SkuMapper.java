@@ -29,7 +29,11 @@ public interface SkuMapper {
 
     int updateSkuInfo(@Param("skuParamBo") SkuParamBo skuParamBo);
 
-    int saleSkuInfo(@Param("orderId") Long orderId, @Param("saleStatus") Integer saleStatus);
+    int countPendingSkuDetail(@Param("orderId") Long orderId);
+
+    int deductSkuMasterByOrderId(@Param("orderId") Long orderId);
+
+    int updateSkuDetailStatus(@Param("orderId") Long orderId, @Param("saleStatus") Integer saleStatus);
 
     int deleteSkuInfo(@Param("skuId") List<Long> skuIds, @Param("deleteStatus") Integer deleteStatus);
 }

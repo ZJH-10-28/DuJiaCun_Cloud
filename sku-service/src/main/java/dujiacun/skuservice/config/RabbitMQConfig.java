@@ -15,7 +15,7 @@ public class RabbitMQConfig {
                 //指定死信队列
                 .deadLetterExchange(DEAD_ORDER_EXCHANGE)
                 .deadLetterRoutingKey(DEAD_ORDER_ROUTING_KEY)
-                .ttl(5000)
+//                .ttl(5000)
                 .build();
     }
 

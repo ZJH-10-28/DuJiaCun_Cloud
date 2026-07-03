@@ -6,5 +6,5 @@ import dujiacun.orderservice.entity.bo.OrderParamBo;
 public interface ICreateOrderService {
     CommonResult<Long> createOrder(Long userId , OrderParamBo orderParamBo);
 
-    CommonResult<Long> createOrderWithTransaction(Long userId , OrderParamBo orderParamBo);
+    CommonResult<Long> createOrderWithTransaction(Long userId , OrderParamBo orderParamBo) throws InterruptedException;
 }

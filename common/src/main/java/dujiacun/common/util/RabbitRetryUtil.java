@@ -19,7 +19,6 @@ public class RabbitRetryUtil {
     }
 
     public static void retryMessage(Message message, Channel channel, int retryCount) throws IOException {
-
         message.getMessageProperties().getHeaders().put(STR_RETRY_COUNT, retryCount);
 
         AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
@@ -28,13 +27,23 @@ public class RabbitRetryUtil {
                 .headers(message.getMessageProperties().getHeaders())
                 .build();
 
-        //发送新消息
-        channel.basicPublish("", //不使用交换机,避免交换机故障丢失消息
-                message.getMessageProperties().getConsumerQueue(),
-                props,
-                message.getBody());
+        try {
+            channel.confirmSelect();
+            channel.basicPublish(
+                    "",//不使用交换机,避免交换机故障丢失消息
+                    message.getMessageProperties().getConsumerQueue(),
+                    props,
+                    message.getBody()
+            );
 
-        //确认原消息
-        channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
+            if (channel.waitForConfirms()) {
+                channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
+                return;
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        channel.basicNack(message.getMessageProperties().getDeliveryTag(), false, true);
     }
 }

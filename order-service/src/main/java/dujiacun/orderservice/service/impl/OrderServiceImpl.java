@@ -16,6 +16,7 @@ import dujiacun.orderservice.service.feignClient.FeignSkuClient;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -59,7 +60,8 @@ public class OrderServiceImpl implements IOrderService {
         rabbitTemplate.convertAndSend(
                 ORDER_EXCHANGE,
                 ROUTING_KEY,
-                orderId.toString()
+                orderId.toString(),
+                new CorrelationData("order:" + orderId)
         );
 
         return CommonResult.success("下单成功",orderId);

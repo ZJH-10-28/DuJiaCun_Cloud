@@ -41,5 +41,8 @@
             fail_reason = #{failReason,jdbcType=VARCHAR},
             update_time = CURRENT_TIMESTAMP
         WHERE message_id = #{messageId,jdbcType=VARCHAR}
+        <if test="currentStatus != null">
+            AND status = #{currentStatus,jdbcType=VARCHAR}
+        </if>
     </update>
 </mapper>

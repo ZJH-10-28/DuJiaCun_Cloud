@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 
 import static dujiacun.common.constant.RabbitMQConstant.MQ_MESSAGE_ID_ORDER_PREFIX;
 import static dujiacun.common.constant.RabbitMQConstant.MQ_STATUS_FAILED;
+import static dujiacun.common.constant.RabbitMQConstant.MQ_STATUS_INIT;
 import static dujiacun.common.constant.RabbitMQConstant.MQ_STATUS_SENT;
 
 @Slf4j
@@ -33,11 +34,11 @@ public class RabbitTemplateConfig {
         String messageId = correlationData == null ? "unknown" : correlationData.getId();
         if (ack) {
             log.info("RabbitMQ消息发送到交换机成功,messageId={}", messageId);
-            mqMessageMapper.updateStatus(messageId, MQ_STATUS_SENT, null);
+            mqMessageMapper.updateStatus(messageId, MQ_STATUS_SENT, null, MQ_STATUS_INIT);
             return;
         }
         log.error("RabbitMQ消息发送到交换机失败,messageId={},cause={}", messageId, cause);
-        mqMessageMapper.updateStatus(messageId, MQ_STATUS_FAILED, cause);
+        mqMessageMapper.updateStatus(messageId, MQ_STATUS_FAILED, cause, null);
     }
 
     private void returned(ReturnedMessage returnedMessage) {
@@ -53,6 +54,6 @@ public class RabbitTemplateConfig {
                 returnedMessage.getReplyText(),
                 new String(returnedMessage.getMessage().getBody())
         );
-        mqMessageMapper.updateStatus(messageId, MQ_STATUS_FAILED, returnedMessage.getReplyText());
+        mqMessageMapper.updateStatus(messageId, MQ_STATUS_FAILED, returnedMessage.getReplyText(), null);
     }
 }

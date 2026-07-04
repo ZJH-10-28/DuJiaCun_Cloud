@@ -12,6 +12,7 @@ public interface MqMessageMapper {
     int updateStatus(
             @Param("messageId") String messageId,
             @Param("status") String status,
-            @Param("failReason") String failReason
+            @Param("failReason") String failReason,
+            @Param("currentStatus") String currentStatus
     );
 }

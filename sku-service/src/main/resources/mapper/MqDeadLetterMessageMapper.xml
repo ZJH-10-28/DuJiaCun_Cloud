@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dujiacun.skuservice.mapper.MqDeadLetterMessageMapper">
+    <insert id="insertMessage">
+        INSERT INTO mq_dead_letter_message (
+            message_id,
+            biz_type,
+            biz_id,
+            exchange_name,
+            routing_key,
+            queue_name,
+            payload,
+            headers,
+            fail_reason,
+            create_time
+        )
+        VALUES (
+            #{message.messageId,jdbcType=VARCHAR},
+            #{message.bizType,jdbcType=VARCHAR},
+            #{message.bizId,jdbcType=VARCHAR},
+            #{message.exchangeName,jdbcType=VARCHAR},
+            #{message.routingKey,jdbcType=VARCHAR},
+            #{message.queueName,jdbcType=VARCHAR},
+            #{message.payload,jdbcType=VARCHAR},
+            #{message.headers,jdbcType=VARCHAR},
+            #{message.failReason,jdbcType=VARCHAR},
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+</mapper>

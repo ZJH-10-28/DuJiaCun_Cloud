@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dujiacun.skuservice.mapper.MqConsumeLogMapper">
+    <insert id="insertIgnore">
+        INSERT INTO mq_consume_log (
+            message_id,
+            biz_type,
+            biz_id,
+            consume_status,
+            create_time
+        )
+        VALUES (
+            #{log.messageId,jdbcType=VARCHAR},
+            #{log.bizType,jdbcType=VARCHAR},
+            #{log.bizId,jdbcType=VARCHAR},
+            #{log.consumeStatus,jdbcType=VARCHAR},
+            CURRENT_TIMESTAMP
+        )
+        ON CONFLICT (biz_type, biz_id) DO NOTHING
+    </insert>
+</mapper>

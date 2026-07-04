@@ -5,11 +5,13 @@ import com.github.pagehelper.PageInfo;
 import dujiacun.common.CommonResult;
 import dujiacun.common.exception.BusinessException;
 import dujiacun.common.util.BeanConvertUtil;
+import dujiacun.orderservice.entity.MqMessage;
 import dujiacun.orderservice.entity.OrderEntity;
 import dujiacun.orderservice.entity.SkuStock;
 import dujiacun.orderservice.entity.bo.OrderInfoBo;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
 import dujiacun.orderservice.entity.dto.OrderResponseDto;
+import dujiacun.orderservice.mapper.MqMessageMapper;
 import dujiacun.orderservice.mapper.OrderMapper;
 import dujiacun.orderservice.service.IOrderService;
 import dujiacun.orderservice.service.feignClient.FeignSkuClient;
@@ -50,6 +52,9 @@ public class OrderServiceImpl implements IOrderService {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
+    @Autowired
+    private MqMessageMapper mqMessageMapper;
+
 
     public CommonResult<Long> afterCreateOrder(Long orderId) {
 
@@ -57,11 +62,32 @@ public class OrderServiceImpl implements IOrderService {
         //调用支付模块,支付成功后更新订单信息到OrderInfo,标记为支付成功
 
         //调用MQ异步扣减sku_master库存,修改订单明细状态为已支付
+        String messageId = MQ_MESSAGE_ID_ORDER_PREFIX + orderId;
+        String payload = orderId.toString();
+
+        MqMessage mqMessage = new MqMessage();
+        mqMessage.setMessageId(messageId);
+        mqMessage.setBizType(MQ_BIZ_TYPE_ORDER_STOCK_DEDUCT);
+        mqMessage.setBizId(orderId.toString());
+        mqMessage.setExchangeName(ORDER_EXCHANGE);
+        mqMessage.setRoutingKey(ROUTING_KEY);
+        mqMessage.setPayload(payload);
+        mqMessage.setStatus(MQ_STATUS_INIT);
+        mqMessage.setRetryCount(0);
+        mqMessage.setMaxRetryCount(5);
+        mqMessageMapper.insertMessage(mqMessage);
+
         rabbitTemplate.convertAndSend(
                 ORDER_EXCHANGE,
                 ROUTING_KEY,
-                orderId.toString(),
-                new CorrelationData("order:" + orderId)
+                payload,
+                message -> {
+                    message.getMessageProperties().setMessageId(messageId);
+                    message.getMessageProperties().setHeader(MQ_HEADER_BIZ_TYPE, MQ_BIZ_TYPE_ORDER_STOCK_DEDUCT);
+                    message.getMessageProperties().setHeader(MQ_HEADER_BIZ_ID, orderId.toString());
+                    return message;
+                },
+                new CorrelationData(messageId)
         );
 
         return CommonResult.success("下单成功",orderId);

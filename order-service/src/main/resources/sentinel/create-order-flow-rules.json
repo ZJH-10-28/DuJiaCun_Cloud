@@ -1,0 +1,21 @@
+[
+  {
+    "_comment": "创建订单资源的本地QPS限流规则，超过阈值后快速失败并进入Sentinel blockHandler。",
+    "_fieldDesc": {
+      "resource": "Sentinel资源名，需要与@SentinelResource中的value保持一致。",
+      "limitApp": "来源应用，default表示不区分调用来源。",
+      "grade": "限流阈值类型，1表示按QPS限流。",
+      "count": "单机限流阈值，这里表示每秒最多允许5个请求进入createOrder。",
+      "strategy": "调用关系限流策略，0表示直接按当前资源限流。",
+      "controlBehavior": "流控效果，0表示快速失败。",
+      "clusterMode": "是否开启集群限流，false表示本地单机限流。"
+    },
+    "resource": "createOrder",
+    "limitApp": "default",
+    "grade": 1,
+    "count": 5,
+    "strategy": 0,
+    "controlBehavior": 0,
+    "clusterMode": false
+  }
+]

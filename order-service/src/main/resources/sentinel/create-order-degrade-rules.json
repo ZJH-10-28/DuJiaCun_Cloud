@@ -1,0 +1,21 @@
+[
+  {
+    "_comment": "创建订单资源的本地慢调用熔断降级规则，慢调用比例达到阈值后短暂熔断。",
+    "_fieldDesc": {
+      "resource": "Sentinel资源名，需要与@SentinelResource中的value保持一致。",
+      "grade": "熔断策略，0表示慢调用比例。",
+      "count": "慢调用RT阈值，单位毫秒，这里表示响应时间超过1000ms记为慢调用。",
+      "timeWindow": "熔断时长，单位秒。",
+      "minRequestAmount": "触发熔断统计前的最小请求数。",
+      "statIntervalMs": "统计窗口时长，单位毫秒。",
+      "slowRatioThreshold": "慢调用比例阈值，0.5表示慢调用占比达到50%时触发熔断。"
+    },
+    "resource": "createOrder",
+    "grade": 0,
+    "count": 1000,
+    "timeWindow": 10,
+    "minRequestAmount": 5,
+    "statIntervalMs": 10000,
+    "slowRatioThreshold": 0.5
+  }
+]

@@ -20,6 +20,17 @@ spring:
       transport:
         dashboard: localhost:8050 # sentinel控制台地址
         eager: true # 启动时立即初始化Sentinel
+      datasource:
+        create-order-flow:
+          file:
+            file: classpath:sentinel/create-order-flow-rules.json # 本地创建订单限流规则
+            data-type: json
+            rule-type: flow
+        create-order-degrade:
+          file:
+            file: classpath:sentinel/create-order-degrade-rules.json # 本地创建订单熔断降级规则
+            data-type: json
+            rule-type: degrade
 
   datasource:
     url: jdbc:postgresql://localhost:5432/DuJiaCun_Cloud_Order

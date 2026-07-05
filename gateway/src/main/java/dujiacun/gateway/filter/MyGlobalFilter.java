@@ -35,28 +35,28 @@ public class MyGlobalFilter implements GlobalFilter {
             return chain.filter(exchange);
         }
 
-//        //防抖
-//        String userIdGenerator = null;
-//        String userId = exchange.getRequest().getHeaders().getFirst(STR_USER_ID);
-//        String params = exchange.getRequest().getQueryParams().toSingleValueMap().toString();
-//        String STR_DEBOUNCE_KEY = "debounce:";
-//        String debounceKey = String.format(STR_DEBOUNCE_KEY + "%s:%s:%s", userId , path , params);
-//        long debounceMiles = 3000;
-//
-//        try {
-//            if (Boolean.FALSE.equals(redisTemplate.opsForValue()
-//                    .setIfAbsent(debounceKey, "isDebounce", debounceMiles, TimeUnit.MILLISECONDS))){
-//                //设置429状态码
-//                exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS);
-//                return exchange.getResponse().setComplete();
-//            }
-//            userIdGenerator = redisTemplate.opsForValue().increment(STR_USER_ID_GENERATOR, 1).toString();
-//        } catch (Exception e) {
-//            //Redis异常
-//            return chain.filter(exchange);
-//        }
+        //防抖
+        String userIdGenerator = null;
+        String userId = exchange.getRequest().getHeaders().getFirst(STR_USER_ID);
+        String params = exchange.getRequest().getQueryParams().toSingleValueMap().toString();
+        String STR_DEBOUNCE_KEY = "debounce:";
+        String debounceKey = String.format(STR_DEBOUNCE_KEY + "%s:%s:%s", userId , path , params);
+        long debounceMiles = 3000;
 
-            String userIdGenerator = redisTemplate.opsForValue().increment(STR_INCREMENT_ID, 1).toString();
+        try {
+            if (Boolean.FALSE.equals(redisTemplate.opsForValue()
+                    .setIfAbsent(debounceKey, "isDebounce", debounceMiles, TimeUnit.MILLISECONDS))){
+                //设置429状态码
+                exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS);
+                return exchange.getResponse().setComplete();
+            }
+            userIdGenerator = redisTemplate.opsForValue().increment(STR_USER_ID_GENERATOR, 1).toString();
+        } catch (Exception e) {
+            //Redis异常
+            return chain.filter(exchange);
+        }
+
+        userIdGenerator = redisTemplate.opsForValue().increment(STR_INCREMENT_ID, 1).toString();
         //获取上下文请求
         String authHeader  = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         //黑名单校验
@@ -118,9 +118,13 @@ public class MyGlobalFilter implements GlobalFilter {
                     return exchange.getResponse().setComplete();
                 }
             }
-            exchange.getRequest().mutate()
+            ServerHttpRequest forwardedRequest = exchange.getRequest().mutate()
                     .header(STR_USER_ID, claims.getSubject())
-                    .header(STR_INCREMENT_ID,userIdGenerator);
+                    .header(STR_INCREMENT_ID,userIdGenerator)
+                    .build();
+            exchange = exchange.mutate()
+                    .request(forwardedRequest)
+                    .build();
 
         } catch (Throwable t) {
             //设置401状态码

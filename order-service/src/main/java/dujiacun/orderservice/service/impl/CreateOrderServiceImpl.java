@@ -43,8 +43,12 @@ public class CreateOrderServiceImpl implements ICreateOrderService {
     public CommonResult<Long> createOrderWithTransaction(Long userId, OrderParamBo orderParamBo) throws InterruptedException {
         try {
             return createOrderService.createOrder(userId, orderParamBo);
+        } catch (BusinessException e) {
+            log.error("创建订单业务异常,执行Redis回滚", e);
+            orderService.rollbackStock(orderParamBo.getSkuStockList());
+            throw e;
         } catch (Exception e) {
-            log.error("创建订单异常,执行Redis回滚", e);
+            log.error("创建订单系统异常,执行Redis回滚", e);
             orderService.rollbackStock(orderParamBo.getSkuStockList());
             throw new BusinessException("订单创建失败");
         }
@@ -87,8 +91,11 @@ public class CreateOrderServiceImpl implements ICreateOrderService {
 
             log.info("结束创建订单");
             return CommonResult.success("订单创建成功", orderId);
+        } catch (BusinessException ex) {
+            log.info("创建订单业务异常,整体回滚", ex);
+            throw ex;
         } catch (RuntimeException ex) {
-            log.info("创建订单异常,整体回滚", ex);
+            log.info("创建订单系统异常,整体回滚", ex);
             throw new BusinessException("订单创建失败");
         }
     }
@@ -110,6 +117,11 @@ public class CreateOrderServiceImpl implements ICreateOrderService {
      */
     public CommonResult<Long> fallbackDeductStock(Long userId, OrderParamBo orderParamBo, Throwable t) {
         log.warn("创建订单触发Sentinel fallback,userId={}", userId, t);
-        throw new BusinessException("订单创建失败，请检查参数或稍后重试");
+        // 如果原本就是业务异常，保留原始业务失败原因
+        if (t instanceof BusinessException businessException) {
+            throw businessException;
+        }
+        // 如果是未知系统异常，再统一包装成通用提示
+        throw new BusinessException("订单创建失败，请稍后重试");
     }
 }

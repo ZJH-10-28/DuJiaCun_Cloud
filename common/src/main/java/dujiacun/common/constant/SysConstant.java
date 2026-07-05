@@ -29,7 +29,12 @@ public interface SysConstant {
     String STR_USER_ID = "userId";
 
     /**
-     * session中存储的用户ID
+     * 防抖标识
+     */
+    String STR_USER_ID_GENERATOR  = "userIdGenerator";
+
+    /**
+     * session中存储的自增ID
      */
     String STR_INCREMENT_ID = "incrementId";
 
@@ -56,6 +61,11 @@ public interface SysConstant {
      * 黑名单token
      */
     String STR_BLACK_TOKEN = "blackToken:";
+
+    /**
+     * 订单幂等校验
+     */
+    String STR_ORDER_INCR = "orderIncr:";
 
     /**
      * 商品锁

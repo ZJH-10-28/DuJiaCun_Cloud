@@ -37,6 +37,8 @@ import static dujiacun.common.constant.OrderConstant.*;
 @Service
 public class OrderServiceImpl implements IOrderService {
 
+    private static final int LOCK_RETRY_COUNT = 3;
+
     @Autowired
     private OrderMapper orderMapper;
 
@@ -195,143 +197,148 @@ public class OrderServiceImpl implements IOrderService {
 
         RLock stockLock = redissonClient.getLock(REDIS_STOCK_LOCK);
 
-        if (stockLock.tryLock(3, 10, TimeUnit.SECONDS)){
-            try {
-                log.info("开始Redis预扣减");
-                long result = (long)redisTemplate.execute(
-                        new DefaultRedisScript<>(luaScript, long.class),
-                        keys,
-                        values.toArray()
-                );
+        for (int retryCount = 1; retryCount <= LOCK_RETRY_COUNT; retryCount++) {
+            if (stockLock.tryLock(3, 10, TimeUnit.SECONDS)){
+                try {
+                    log.info("开始Redis预扣减");
+                    long result = (long)redisTemplate.execute(
+                            new DefaultRedisScript<>(luaScript, long.class),
+                            keys,
+                            values.toArray()
+                    );
 
-                if (result >= 0){
-                    log.info("结束验证库存:库存不足");
-                    return CommonResult.error("库存不足:" + sortedSkuStockList.get((int)result - 1).getSkuId());
+                    if (result >= 0){
+                        log.info("结束验证库存:库存不足");
+                        return CommonResult.error("库存不足:" + sortedSkuStockList.get((int)result - 1).getSkuId());
+                    }
+                    log.info("Redis预扣减成功");
+                    return CommonResult.success("Redis预扣减成功");
                 }
-                log.info("Redis预扣减成功");
-                return CommonResult.success("Redis预扣减成功");
-            }
-            finally {
-                if (stockLock.isHeldByCurrentThread()){
-                    log.info("结束Redis预扣减");
-                    stockLock.unlock();
+                finally {
+                    if (stockLock.isHeldByCurrentThread()){
+                        log.info("结束Redis预扣减");
+                        stockLock.unlock();
+                    }
                 }
             }
+            log.info("Redis预扣减获取锁失败,第{}次重试", retryCount);
         }
-        else {
-            log.info("尝试重新Redis预扣减");
-            return checkStock(skuStockList);
-        }
+        log.info("Redis预扣减获取锁超过最大重试次数");
+        return CommonResult.error("系统繁忙，请稍后重试");
     }
 
     public void rollbackStock(List<SkuStock> skuStockList) throws InterruptedException {
         RLock rollBackLock = redissonClient.getLock(REDIS_ROLL_BACK_LOCK);
-            log.info("开始回滚Redis");
-            if (rollBackLock.tryLock(3, 10, TimeUnit.SECONDS)) {
-                try {
-                    //再次检查SKU是否存在
-                    Map<String,Integer> needRollBackSkusMap = new HashMap<>();
-                    List<Long> rollBackSkuIds = skuStockList.stream()
-                            .map(SkuStock::getSkuId)
-                            .toList();
-                    for (int i = 0; i < rollBackSkuIds.size(); i++) {
-                        //Redis中存在SKU才进行回滚,不存在直接忽略
-                        if (redisTemplate.hasKey(STR_SKU + rollBackSkuIds.get(i))){
-                            needRollBackSkusMap.put(STR_SKU + rollBackSkuIds.get(i) , skuStockList.get(i).getSaleCount());
+        log.info("开始回滚Redis");
+        try {
+            for (int retryCount = 1; retryCount <= LOCK_RETRY_COUNT; retryCount++) {
+                if (rollBackLock.tryLock(3, 10, TimeUnit.SECONDS)) {
+                    try {
+                        //再次检查SKU是否存在
+                        Map<String,Integer> needRollBackSkusMap = new HashMap<>();
+                        List<Long> rollBackSkuIds = skuStockList.stream()
+                                .map(SkuStock::getSkuId)
+                                .toList();
+                        for (int i = 0; i < rollBackSkuIds.size(); i++) {
+                            //Redis中存在SKU才进行回滚,不存在直接忽略
+                            if (redisTemplate.hasKey(STR_SKU + rollBackSkuIds.get(i))){
+                                needRollBackSkusMap.put(STR_SKU + rollBackSkuIds.get(i) , skuStockList.get(i).getSaleCount());
+                            }
                         }
-                    }
-                    //不存在直接忽略
-                    if (needRollBackSkusMap.isEmpty()){
+                        //不存在直接忽略
+                        if (needRollBackSkusMap.isEmpty()){
+                            return;
+                        }
+                        String rollBackLuaScript =
+                                "for i, key in ipairs(KEYS) do " +
+                                "   redis.call('INCRBY', key, ARGV[i]) " +
+                                "end " +
+                                "return -1";
+                        //批量写入Redis
+                        List<String> keys = new ArrayList<>(needRollBackSkusMap.keySet());
+                        List<Integer> values = new ArrayList<>(needRollBackSkusMap.values());
+                        long result = (long) redisTemplate.execute(
+                                new DefaultRedisScript<>(rollBackLuaScript, long.class),
+                                keys,
+                                values.toArray()
+                        );
+                        if (result >= 0){
+                            throw new BusinessException("Redis回滚库存失败");
+                        }
+                        log.info("Redis回滚库存成功");
                         return;
-                    }
-                    String rollBackLuaScript =
-                            "for i, key in ipairs(KEYS) do " +
-                            "   redis.call('INCRBY', key, ARGV[i]) " +
-                            "end " +
-                            "return -1";
-                    //批量写入Redis
-                    List<String> keys = new ArrayList<>(needRollBackSkusMap.keySet());
-                    List<Integer> values = new ArrayList<>(needRollBackSkusMap.values());
-                    long result = (long) redisTemplate.execute(
-                            new DefaultRedisScript<>(rollBackLuaScript, long.class),
-                            keys,
-                            values.toArray()
-                    );
-                    if (result >= 0){
+                    } catch (Exception e) {
                         throw new BusinessException("Redis回滚库存失败");
                     }
-                    log.info("Redis回滚库存成功");
-                } catch (Exception e) {
-                    //设置中断标志
-                    Thread.currentThread().interrupt();
-                    throw new BusinessException("Redis回滚库存失败");
-                }
-                finally {
-                    if (rollBackLock.isHeldByCurrentThread()){
-                    //释放锁
-                    rollBackLock.unlock();
+                    finally {
+                        if (rollBackLock.isHeldByCurrentThread()){
+                        //释放锁
+                        rollBackLock.unlock();
+                        }
                     }
                 }
+                log.info("Redis回滚获取锁失败,第{}次重试", retryCount);
             }
-            else{
-                rollbackStock(skuStockList);
-            }
-        log.info("结束回滚Redis");
+            throw new BusinessException("系统繁忙，请稍后重试");
+        } finally {
+            log.info("结束回滚Redis");
+        }
     }
 
     // TODO 从数据库中查没有的SKU到Redis中
     public void dbTORedis(List<Long> noSkuRedisIds , List<String> noSkuRedisKeys) {
         RLock redisUpdateLock = redissonClient.getLock(REDIS_STOCK_LOCK);
 
-        try {
-            if (redisUpdateLock.tryLock(3, 10, TimeUnit.SECONDS)) {
+        for (int retryCount = 1; retryCount <= LOCK_RETRY_COUNT; retryCount++) {
+            try {
+                if (redisUpdateLock.tryLock(3, 10, TimeUnit.SECONDS)) {
+                    try {
+                        // 双重检查
+                        List<Long> needLoadSkuIds = new ArrayList<>();
+                        for (int i = 0; i < noSkuRedisKeys.size(); i++) {
+                            if (!redisTemplate.hasKey(noSkuRedisKeys.get(i))) {
+                                needLoadSkuIds.add(noSkuRedisIds.get(i));
+                            }
+                        }
+                        if (needLoadSkuIds.isEmpty()){
+                            return;
+                        }
 
-                // 双重检查
-                List<Long> needLoadSkuIds = new ArrayList<>();
-                for (int i = 0; i < noSkuRedisKeys.size(); i++) {
-                    if (!redisTemplate.hasKey(noSkuRedisKeys.get(i))) {
-                        needLoadSkuIds.add(noSkuRedisIds.get(i));
+                        // 批量从 DB 查询库存
+                        Map<Long, Integer> dbStocks = skuClient.getStocksBySkuIds(needLoadSkuIds);
+                        Map<String, Integer> redisStocks = new HashMap<>();
+                        for (Long skuId : needLoadSkuIds) {
+    //                  //数据库没有当前SKU就返回0,防止缓存穿透
+                            redisStocks.put(STR_SKU + skuId, dbStocks.get(skuId) == null ? 0 :dbStocks.get(skuId));
+                        }
+                        // 写入 Redis
+                        redisTemplate.opsForValue().multiSetIfAbsent(redisStocks);
+    //                for (Long skuId : needLoadSkuIds) {
+    //                    redisTemplate.opsForValue().set(
+    //                            STR_SKU + skuId,
+    //                            //数据库没有当前SKU就返回0,防止缓存穿透
+    //                            dbStocks.get(skuId) == null ? 0 : dbStocks.get(skuId),
+    //                            3600 + ThreadLocalRandom.current().nextLong(0,600),
+    //                            TimeUnit.SECONDS
+    //                    );
+    //                }
+                        return;
+                    }
+                    finally {
+                        if (redisUpdateLock.isHeldByCurrentThread()) {
+                            //释放锁
+                            redisUpdateLock.unlock();
+                        }
                     }
                 }
-                if (needLoadSkuIds.isEmpty()){
-                    return;
-                }
-
-                // 批量从 DB 查询库存
-                Map<Long, Integer> dbStocks = skuClient.getStocksBySkuIds(needLoadSkuIds);
-                Map<String, Integer> redisStocks = new HashMap<>();
-                for (Long skuId : needLoadSkuIds) {
-//                  //数据库没有当前SKU就返回0,防止缓存穿透
-                    redisStocks.put(STR_SKU + skuId, dbStocks.get(skuId) == null ? 0 :dbStocks.get(skuId));
-                }
-                // 写入 Redis
-                redisTemplate.opsForValue().multiSetIfAbsent(redisStocks);
-//                for (Long skuId : needLoadSkuIds) {
-//                    redisTemplate.opsForValue().set(
-//                            STR_SKU + skuId,
-//                            //数据库没有当前SKU就返回0,防止缓存穿透
-//                            dbStocks.get(skuId) == null ? 0 : dbStocks.get(skuId),
-//                            3600 + ThreadLocalRandom.current().nextLong(0,600),
-//                            TimeUnit.SECONDS
-//                    );
-//                }
-
-
-            } else {
-                dbTORedis(noSkuRedisIds,noSkuRedisKeys);
-//                throw new BusinessException("系统繁忙，请稍后重试");
-            }
-        } catch (InterruptedException e) {
-            //设置中断标志
-            Thread.currentThread().interrupt();
-            throw new BusinessException("加载库存失败");
-        }
-        finally {
-            if (redisUpdateLock.isHeldByCurrentThread()) {
-                //释放锁
-                redisUpdateLock.unlock();
+                log.info("加载库存到Redis获取锁失败,第{}次重试", retryCount);
+            } catch (InterruptedException e) {
+                //设置中断标志
+                Thread.currentThread().interrupt();
+                throw new BusinessException("加载库存失败");
             }
         }
+        throw new BusinessException("系统繁忙，请稍后重试");
     }
 
 }

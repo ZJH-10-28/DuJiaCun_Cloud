@@ -13,11 +13,13 @@ public class UserThreadLocal {
         }
     }
     public static String getUserId(){
-        return USER_TOKEN_THREAD_LOCAL.get().userId;
+        ThreadContent threadContent = USER_TOKEN_THREAD_LOCAL.get();
+        return threadContent == null ? null : threadContent.userId;
     }
 
     public static String getIncrementId(){
-        return USER_TOKEN_THREAD_LOCAL.get().incrementId;
+        ThreadContent threadContent = USER_TOKEN_THREAD_LOCAL.get();
+        return threadContent == null ? null : threadContent.incrementId;
     }
 
     public static void setThreadContent(String userId,String incrementId){

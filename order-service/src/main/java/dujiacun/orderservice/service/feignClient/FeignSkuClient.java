@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 
-@FeignClient(name = "sku-service")
+@FeignClient(name = "sku-service", fallbackFactory = FeignSkuClientFallbackFactory.class)
 public interface FeignSkuClient {
 
     @PostMapping("/skus/skuStocksByIds")

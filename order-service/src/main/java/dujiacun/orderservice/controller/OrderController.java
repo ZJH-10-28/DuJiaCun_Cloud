@@ -1,13 +1,12 @@
 package dujiacun.orderservice.controller;
 
-import com.github.pagehelper.Page;
 import com.github.pagehelper.PageInfo;
+import dujiacun.common.CommonResult;
 import dujiacun.common.constant.UserThreadLocal;
 import dujiacun.common.error.ErrorCode;
 import dujiacun.common.util.BeanConvertUtil;
 import dujiacun.orderservice.config.OrderProperties;
 import dujiacun.orderservice.entity.SkuResponseDto;
-import dujiacun.orderservice.entity.UserEntity;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
 import dujiacun.orderservice.entity.dto.OrderInfoByUserIdDto;
 import dujiacun.orderservice.entity.dto.OrderInfoListDto;
@@ -21,12 +20,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import dujiacun.common.CommonResult;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import static dujiacun.common.constant.SysConstant.STR_ORDER_INCR;
 
 @Slf4j
 @RestController
@@ -51,9 +51,19 @@ public class OrderController {
 
     @PostMapping("/orderInfo")
     public CommonResult<Long> createOrder(@Validated @RequestBody OrderRequestDto orderRequestDto) throws InterruptedException {
-        //防抖
+        String userId = UserThreadLocal.getUserId();
+        String incrementId = UserThreadLocal.getIncrementId();
+        if (userId == null || userId.isBlank() || incrementId == null || incrementId.isBlank()) {
+            log.info("创建订单缺少用户上下文,userId={},incrementId={}", userId, incrementId);
+            return CommonResult.error(ErrorCode.UNAUTHORIZED);
+        }
+        if (orderRequestDto.getSkuStockList() == null || orderRequestDto.getSkuStockList().isEmpty()) {
+            return CommonResult.error("商品信息不能为空");
+        }
+
+        //幂等校验
         if (Boolean.FALSE.equals(
-                redisTemplate.opsForValue().setIfAbsent("incr:" + UserThreadLocal.getIncrementId(), UserThreadLocal.getIncrementId(), 3000, TimeUnit.MILLISECONDS)
+                redisTemplate.opsForValue().setIfAbsent(STR_ORDER_INCR + UserThreadLocal.getIncrementId(), UserThreadLocal.getUserId(), 3000, TimeUnit.MILLISECONDS)
         )){
             return CommonResult.error(ErrorCode.TOO_MANY_REQUESTS);
         }

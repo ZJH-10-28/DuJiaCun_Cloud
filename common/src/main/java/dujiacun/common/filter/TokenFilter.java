@@ -11,6 +11,9 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
+import static dujiacun.common.constant.SysConstant.STR_INCREMENT_ID;
+import static dujiacun.common.constant.SysConstant.STR_USER_ID;
+
 @Component
 public class TokenFilter implements Filter {
 
@@ -25,8 +28,8 @@ public class TokenFilter implements Filter {
 
         try{
             // 获取请求头中的token
-            String userId = request.getHeader("userId");
-            String incrementId = request.getHeader("incrementId");
+            String userId = request.getHeader(STR_USER_ID);
+            String incrementId = request.getHeader(STR_INCREMENT_ID);
             UserThreadLocal.setThreadContent(userId, incrementId);
             filterChain.doFilter(request, response);
         }

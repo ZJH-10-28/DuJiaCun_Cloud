@@ -21,12 +21,15 @@ import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import static dujiacun.common.constant.RabbitMQConstant.*;
@@ -38,6 +41,14 @@ import static dujiacun.common.constant.OrderConstant.*;
 public class OrderServiceImpl implements IOrderService {
 
     private static final int LOCK_RETRY_COUNT = 3;
+
+    private static final long NORMAL_STOCK_CACHE_BASE_TTL_SECONDS = 3600;
+
+    private static final long NORMAL_STOCK_CACHE_RANDOM_TTL_SECONDS = 600;
+
+    private static final long EMPTY_STOCK_CACHE_BASE_TTL_SECONDS = 60;
+
+    private static final long EMPTY_STOCK_CACHE_RANDOM_TTL_SECONDS = 240;
 
     @Autowired
     private OrderMapper orderMapper;
@@ -56,6 +67,37 @@ public class OrderServiceImpl implements IOrderService {
 
     @Autowired
     private MqMessageMapper mqMessageMapper;
+
+    static long resolveSkuCacheTtlSeconds(Integer stockCount) {
+        // 空库存使用短TTL，减少无货或不存在商品长期停留在缓存中的风险。
+        if (stockCount == null || stockCount <= 0) {
+            return EMPTY_STOCK_CACHE_BASE_TTL_SECONDS + ThreadLocalRandom.current().nextLong(EMPTY_STOCK_CACHE_RANDOM_TTL_SECONDS + 1);
+        }
+        // 正常库存使用长TTL和随机抖动，降低大量缓存同时过期带来的回源压力。
+        return NORMAL_STOCK_CACHE_BASE_TTL_SECONDS + ThreadLocalRandom.current().nextLong(NORMAL_STOCK_CACHE_RANDOM_TTL_SECONDS + 1);
+    }
+
+    private boolean tryLockAllSkuLocks(List<RLock> skuLocks) throws InterruptedException {
+        // 多商品加锁必须按固定顺序获取，避免并发订单互相等待造成死锁。
+        for (RLock skuLock : skuLocks) {
+            if (!skuLock.tryLock(3, 10, TimeUnit.SECONDS)) {
+                // 任意商品锁获取失败时立即释放已获取的锁，避免本次重试残留锁占用。
+                unlockAllSkuLocks(skuLocks);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void unlockAllSkuLocks(List<RLock> skuLocks) {
+        // 按反向顺序释放锁，保证已经获取的商品锁全部归还。
+        for (int i = skuLocks.size() - 1; i >= 0; i--) {
+            RLock skuLock = skuLocks.get(i);
+            if (skuLock.isHeldByCurrentThread()) {
+                skuLock.unlock();
+            }
+        }
+    }
 
 
     public CommonResult<Long> afterCreateOrder(Long orderId) {
@@ -195,44 +237,34 @@ public class OrderServiceImpl implements IOrderService {
                 .map(s -> s.getSaleCount())
                 .toList();
 
-        RLock stockLock = redissonClient.getLock(REDIS_STOCK_LOCK);
+        // Redis Lua脚本会在服务端原子执行库存校验和扣减，这里不再额外加分布式锁。
+        log.info("开始Redis预扣减");
+        long result = (long)redisTemplate.execute(
+                new DefaultRedisScript<>(luaScript, long.class),
+                keys,
+                values.toArray()
+        );
 
-        for (int retryCount = 1; retryCount <= LOCK_RETRY_COUNT; retryCount++) {
-            if (stockLock.tryLock(3, 10, TimeUnit.SECONDS)){
-                try {
-                    log.info("开始Redis预扣减");
-                    long result = (long)redisTemplate.execute(
-                            new DefaultRedisScript<>(luaScript, long.class),
-                            keys,
-                            values.toArray()
-                    );
-
-                    if (result >= 0){
-                        log.info("结束验证库存:库存不足");
-                        return CommonResult.error("库存不足:" + sortedSkuStockList.get((int)result - 1).getSkuId());
-                    }
-                    log.info("Redis预扣减成功");
-                    return CommonResult.success("Redis预扣减成功");
-                }
-                finally {
-                    if (stockLock.isHeldByCurrentThread()){
-                        log.info("结束Redis预扣减");
-                        stockLock.unlock();
-                    }
-                }
-            }
-            log.info("Redis预扣减获取锁失败,第{}次重试", retryCount);
+        if (result >= 0){
+            log.info("结束验证库存:库存不足");
+            return CommonResult.error("库存不足:" + sortedSkuStockList.get((int)result - 1).getSkuId());
         }
-        log.info("Redis预扣减获取锁超过最大重试次数");
-        return CommonResult.error("系统繁忙，请稍后重试");
+        log.info("Redis预扣减成功");
+        log.info("结束Redis预扣减");
+        return CommonResult.success("Redis预扣减成功");
     }
 
     public void rollbackStock(List<SkuStock> skuStockList) throws InterruptedException {
-        RLock rollBackLock = redissonClient.getLock(REDIS_ROLL_BACK_LOCK);
+        List<RLock> rollBackLocks = skuStockList.stream()
+                .map(SkuStock::getSkuId)
+                .distinct()
+                .sorted()
+                .map(skuId -> redissonClient.getLock(SKU_LOCK_KEY + skuId))
+                .toList();
         log.info("开始回滚Redis");
         try {
             for (int retryCount = 1; retryCount <= LOCK_RETRY_COUNT; retryCount++) {
-                if (rollBackLock.tryLock(3, 10, TimeUnit.SECONDS)) {
+                if (tryLockAllSkuLocks(rollBackLocks)) {
                     try {
                         //再次检查SKU是否存在
                         Map<String,Integer> needRollBackSkusMap = new HashMap<>();
@@ -271,10 +303,8 @@ public class OrderServiceImpl implements IOrderService {
                         throw new BusinessException("Redis回滚库存失败");
                     }
                     finally {
-                        if (rollBackLock.isHeldByCurrentThread()){
-                        //释放锁
-                        rollBackLock.unlock();
-                        }
+                        //释放当前订单涉及的全部商品锁
+                        unlockAllSkuLocks(rollBackLocks);
                     }
                 }
                 log.info("Redis回滚获取锁失败,第{}次重试", retryCount);
@@ -311,17 +341,20 @@ public class OrderServiceImpl implements IOrderService {
     //                  //数据库没有当前SKU就返回0,防止缓存穿透
                             redisStocks.put(STR_SKU + skuId, dbStocks.get(skuId) == null ? 0 :dbStocks.get(skuId));
                         }
-                        // 写入 Redis
-                        redisTemplate.opsForValue().multiSetIfAbsent(redisStocks);
-    //                for (Long skuId : needLoadSkuIds) {
-    //                    redisTemplate.opsForValue().set(
-    //                            STR_SKU + skuId,
-    //                            //数据库没有当前SKU就返回0,防止缓存穿透
-    //                            dbStocks.get(skuId) == null ? 0 : dbStocks.get(skuId),
-    //                            3600 + ThreadLocalRandom.current().nextLong(0,600),
-    //                            TimeUnit.SECONDS
-    //                    );
-    //                }
+                        // 使用Pipeline批量写入Redis并设置TTL，减少多SKU回源后的网络往返次数。
+                        RedisSerializer keySerializer = redisTemplate.getKeySerializer();
+                        RedisSerializer valueSerializer = redisTemplate.getValueSerializer();
+                        redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+                            for (Map.Entry<String, Integer> entry : redisStocks.entrySet()) {
+                                long ttlSeconds = resolveSkuCacheTtlSeconds(entry.getValue());
+                                connection.stringCommands().setEx(
+                                        keySerializer.serialize(entry.getKey()),
+                                        ttlSeconds,
+                                        valueSerializer.serialize(entry.getValue())
+                                );
+                            }
+                            return null;
+                        });
                         return;
                     }
                     finally {

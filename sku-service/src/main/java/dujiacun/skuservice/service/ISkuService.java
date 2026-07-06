@@ -22,7 +22,7 @@ public interface ISkuService {
 
     CommonResult<String> updateSkuInfo(SkuParamBo skuParamBo);
 
-    CommonResult<String> saleSkuInfo(Long skuId);
+    CommonResult<String> saleSkuInfo(Long orderId);
 
     CommonResult<String> deleteSkuInfo(List<Long> skuIds);
 }

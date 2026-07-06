@@ -24,12 +24,11 @@
 
 ##### 阅读顺序
 
-- **入口与鉴权**：调用方先进入 `gateway`，登录/注册直接放行，其余请求校验 `Authorization`、`blackToken:*`、`name=dujiacun`，解析 JWT 后透传 `userId` 和 `incrementId`。
-- **下单主链路**：`OrderController.createOrder` 做 Redis 防重复提交，再由 `OrderServiceImpl.checkStock` 查询/补齐库存缓存，并在 Redisson 锁内用 Lua 原子预扣 Redis 库存。
-- **订单创建事务**：`CreateOrderServiceImpl.createOrderWithTransaction` 开启 Seata 全局事务，`createOrder` 受 Sentinel 保护，事务内保存 `order_info` 并通过 Feign 调用 `SkuServiceImpl.saveSkuDetail` 保存 `sku_detail`。
-- **事务成功后的异步链路**：`OrderServiceImpl.afterCreateOrder` 先写 `mq_message=INIT`，再投递 RabbitMQ；生产者 confirm/returns 回调把消息状态更新为 `SENT` 或 `FAILED`。
-- **库存最终扣减**：`SkuConsumer.receive` 监听 `order.queue`，`MqOrderMessageService.consumeOrderStockDeduct` 先写幂等消费日志，再调用 `SkuServiceImpl.saleSkuInfo` 扣减 `sku_master` 并更新 `sku_detail` 状态。
-- **异常补偿路径**：创建订单或 Sentinel 降级抛异常时回滚 Redis 预扣库存；消费异常时通过 `RabbitRetryUtil` 重试，超过 3 次后 `basicReject` 进入死信队列并由 `DeadConsumer.receive` 落库。
+- **第一张图：入口与鉴权**：调用方先进入 `gateway`，登录/注册直接放行，其余请求校验 `Authorization`、`blackToken:*`、`name=dujiacun`，解析 JWT 后透传 `userId` 和 `incrementId`，并将下单请求交给 `order-service`。
+- **第二张图：下单编排与订单创建**：`order-service` 接收上游传入的下单请求、`userId`、`incrementId`，先做 Redis 防重复提交，再查询/补齐库存缓存，并在 Redisson 锁内用 Lua 原子预扣 Redis 库存。
+- **第二张图：订单创建事务与异步投递**：`CreateOrderServiceImpl.createOrderWithTransaction` 开启 Seata 全局事务，`createOrder` 受 Sentinel 保护，事务内保存 `order_info` 并通过 Feign 调用 `sku-service` 保存 `sku_detail`；事务成功后写 `mq_message=INIT` 并投递 RabbitMQ。
+- **第三张图：库存查询、明细保存与库存最终扣减**：`sku-service` 接收 `order-service` 传入的库存查询、保存明细和库存扣减消息；`skuConsumer.receive` 监听 `order.queue`，幂等消费后扣减 `sku_master` 并更新 `sku_detail` 状态。
+- **第三张图：异常补偿路径**：消费异常时通过 `RabbitRetryUtil` 重试，超过 3 次后 `basicReject` 进入死信队列并由 `deadConsumer.receive` 落库。
 
 ##### 模块边界与治理范围
 
@@ -37,96 +36,153 @@
 - **user-service**：负责登录、注册、用户信息读取和 JWT 生成，是鉴权链路的数据来源。
 - **order-service**：负责下单编排、Redis 预扣、Seata/Sentinel 治理、订单落库和 MQ 生产。
 - **sku-service**：负责库存读取、订单明细落库、MQ 消费扣减、消费幂等和死信记录。
-- **common**：提供 `JwtUtil`、`TokenFilter`、`FeignConfig`、Redis/Redisson 配置、RabbitMQ 常量和重试工具，通过虚线表示被各服务复用。
+- **RabbitMQ**：负责库存扣减消息的可靠投递、重试入队和死信流转。
+
+##### 图一：调用方、gateway、user-service
 
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "nodeSpacing": 34, "rankSpacing": 46, "curve": "basis"}, "themeVariables": {"fontSize": "14px", "edgeLabelBackground": "transparent"}, "themeCSS": ".edgeLabel,.edgeLabel span,.edgeLabel p,.edgeLabel div,.edgeLabel foreignObject{background-color:transparent!important;font-size:17px!important;font-weight:700!important}.edgeLabel .labelBkg,.edgeLabel rect{fill:transparent!important;stroke:transparent!important;opacity:0!important}"}}%%
+%%{init: {"flowchart": {"htmlLabels": true, "nodeSpacing": 12, "rankSpacing": 16, "curve": "basis"}, "themeVariables": {"fontSize": "18px", "edgeLabelBackground": "transparent"}, "themeCSS": ".edgeLabel,.edgeLabel span,.edgeLabel p,.edgeLabel div,.edgeLabel foreignObject{background-color:transparent!important;font-size:17px!important;font-weight:700!important}.edgeLabel .labelBkg,.edgeLabel rect{fill:transparent!important;stroke:transparent!important;opacity:0!important}"}}%%
 flowchart TB
   classDef title fill:#FFFFFF,stroke-width:0px,color:#111827,font-size:22px,font-weight:bold
   classDef caller fill:#F8FAFC,color:#1F2937,stroke:#CBD5E1,stroke-width:1.5px
   classDef gateway fill:#EAF3FF,color:#123A5F,stroke:#4B83B8,stroke-width:1.8px
   classDef user fill:#EEF2FF,color:#27346B,stroke:#6675C8,stroke-width:1.8px
-  classDef order fill:#FFF2E8,color:#7A2E13,stroke:#E8793C,stroke-width:1.8px
-  classDef sku fill:#EAF7F4,color:#14564A,stroke:#3D9B87,stroke-width:1.8px
   classDef redis fill:#EAF8EE,color:#14532D,stroke:#44A36F,stroke-width:1.8px
-  classDef mq fill:#F3EEFF,color:#49306B,stroke:#8B6BC0,stroke-width:1.8px
   classDef db fill:#F4F5F7,color:#374151,stroke:#8B95A1,stroke-width:1.8px
-  classDef common fill:#FFF9E6,color:#5C4813,stroke:#B89B31,stroke-width:1.5px,stroke-dasharray:5 4
   classDef warn fill:#FFF1F1,color:#8A1C1C,stroke:#D14343,stroke-width:2px
-  classDef gov fill:#FFFBEA,color:#5C4813,stroke:#C9A227,stroke-width:2px
+  classDef nextOrder fill:#FFF2E8,color:#7A2E13,stroke:#E8793C,stroke-width:2.4px,stroke-dasharray:5 4
 
-  subgraph PAGE_STACK[" "]
+  subgraph APP_ENTRY_STACK[" "]
     direction TB
-    subgraph MAIN_ROW[" "]
-      direction LR
-      subgraph TOP_STACK[" "]
+    subgraph CALLER[" "]
+      direction TB
+      CallerTitle["调用方<br/><b>HTTP 请求入口</b>"]
+      Client["前端/外部调用方<br/>携带 token、name、isAdmin"]
+    end
+
+    subgraph GATEWAY[" "]
+      direction TB
+      GatewayTitle["gateway 模块<br/><b>统一入口 / 鉴权 / 路由</b>"]
+      subgraph GATEWAY_BODY[" "]
         direction TB
-        subgraph TOP_ROW[" "]
-          direction LR
-          subgraph COMMON[" "]
-            direction TB
-            CommonTitle["common 模块<br/><b>公共能力复用</b>"]
-            CommonNode["JwtUtil / TokenFilter / FeignConfig<br/>RedisConfig / RedissonConfig / RabbitRetryUtil / 常量"]
-          end
-
-          subgraph APP_ENTRY_STACK[" "]
-            direction TB
-            subgraph CALLER[" "]
-              direction TB
-              CallerTitle["调用方<br/><b>HTTP 请求入口</b>"]
-              Client["前端/外部调用方<br/>携带 token、name、isAdmin"]
-            end
-
-            subgraph GATEWAY[" "]
-              direction TB
-              GatewayTitle["gateway 模块<br/><b>统一入口 / 鉴权 / 路由</b>"]
-              subgraph GATEWAY_BODY[" "]
-                direction LR
-                subgraph GATEWAY_ENTRY[" "]
-                  direction TB
-                  GatewayFilter["MyGlobalFilter.filter<br/>统一拦截请求"]
-                  LoginBypass["放行 /users/login /users/register<br/>登录注册不校验 token"]
-                end
-                subgraph AUTH_GOV[" "]
-                  direction TB
-                  AuthTitle["鉴权治理范围<br/><b>JWT + 黑名单 + 请求上下文</b>"]
-                  GatewayAuth["校验请求头与参数<br/>Authorization、isAdmin、name=dujiacun"]
-                  RedisBlackToken["Redis<br/>blackToken:* 黑名单校验<br/>incrementId 自增"]
-                  JwtParse["JwtUtil.parseToken<br/>解析 userId/userName/isAdmin"]
-                  TokenFilter["TokenFilter.doFilter<br/>写入 UserThreadLocal"]
-                  RejectResponse["401/403 响应<br/>认证失败或权限不足"]
-                end
-              end
-            end
-
-            subgraph USER[" "]
-              direction TB
-              UserTitle["user-service 模块<br/><b>用户登录 / 注册 / JWT 生成</b>"]
-              subgraph USER_BODY[" "]
-                direction LR
-                subgraph USER_SERVICE_FLOW[" "]
-                  direction TB
-                  UserLogin["UserServiceImpl.login<br/>校验账号密码"]
-                  UserMapperByName["UserMapper.getByUserName<br/>按用户名查询用户"]
-                  JwtGenerate["JwtUtil.generateToken<br/>生成登录 token"]
-                  UserRegister["UserServiceImpl.setUserInfo<br/>注册用户并设置 isAdmin=0"]
-                end
-                subgraph USER_DB[" "]
-                  direction TB
-                  UserDbTitle["user-service 数据访问<br/><b>PostgreSQL / MyBatis</b>"]
-                  UserMaster["user_master<br/>用户账号、密码、角色"]
-                end
-              end
-            end
-          end
+        subgraph GATEWAY_ENTRY[" "]
+          direction TB
+          GatewayFilter["MyGlobalFilter.filter<br/>统一拦截请求"]
+          LoginBypass["放行 /users/login /users/register<br/>登录注册不校验 token"]
+        end
+        subgraph AUTH_GOV[" "]
+          direction TB
+          AuthTitle["鉴权治理范围<br/><b>JWT + 黑名单 + 请求上下文</b>"]
+          GatewayAuth["校验请求头与参数<br/>Authorization、isAdmin、name=dujiacun"]
+          RedisBlackToken["Redis<br/>blackToken:* 黑名单校验<br/>incrementId 自增"]
+          JwtParse["JwtUtil.parseToken<br/>解析 userId/userName/isAdmin"]
+          TokenFilter["TokenFilter.doFilter<br/>写入 UserThreadLocal"]
+          RejectResponse["401/403 响应<br/>认证失败或权限不足"]
         end
       end
+    end
+
+    subgraph USER[" "]
+      direction TB
+      UserTitle["user-service 模块<br/><b>用户登录 / 注册 / JWT 生成</b>"]
+      subgraph USER_BODY[" "]
+        direction TB
+        subgraph USER_SERVICE_FLOW[" "]
+          direction TB
+          UserLogin["UserServiceImpl.login<br/>校验账号密码"]
+          UserMapperByName["UserMapper.getByUserName<br/>按用户名查询用户"]
+          JwtGenerate["JwtUtil.generateToken<br/>生成登录 token"]
+          UserRegister["UserServiceImpl.setUserInfo<br/>注册用户并设置 isAdmin=0"]
+        end
+        subgraph USER_DB[" "]
+          direction TB
+          UserDbTitle["user-service 数据访问<br/><b>PostgreSQL / MyBatis</b>"]
+          UserMaster["user_master<br/>用户账号、密码、角色"]
+        end
+      end
+    end
+
+    subgraph NEXT_ORDER_MODULE[" "]
+      direction TB
+      OrderServiceNext["order-service 模块<br/><b>下一个流程图继续查看</b>"]
+    end
+  end
+
+  Client -->|<b>HTTP 请求进入网关</b>| GatewayFilter
+  GatewayFilter -->|<b>登录注册放行</b>| LoginBypass
+  LoginBypass -->|<b>路由 /users/**</b>| UserLogin
+  GatewayFilter -->|<b>非登录请求进入鉴权</b>| GatewayAuth
+  GatewayAuth -->|<b>查黑名单并生成请求ID</b>| RedisBlackToken
+  GatewayAuth -->|<b>JWT 校验通过</b>| JwtParse
+  JwtParse -->|<b>透传 userId / incrementId</b>| TokenFilter
+  TokenFilter -->|<b>路由 /orders/**</b>| OrderServiceNext
+  UserLogin -->|<b>查询用户</b>| UserMapperByName
+  UserMapperByName -->|<b>读 user_master</b>| UserMaster
+  UserLogin -->|<b>生成登录态</b>| JwtGenerate
+  UserRegister -->|<b>写入新用户</b>| UserMaster
+  GatewayAuth -. <b>鉴权失败</b> .-> RejectResponse
+
+  class CallerTitle,GatewayTitle,AuthTitle,UserTitle,UserDbTitle title
+  class Client caller
+  class GatewayFilter,LoginBypass,GatewayAuth,JwtParse,TokenFilter gateway
+  class UserLogin,UserMapperByName,JwtGenerate,UserRegister user
+  class RedisBlackToken redis
+  class UserMaster db
+  class RejectResponse warn
+  class OrderServiceNext nextOrder
+
+  style CALLER fill:#F8FAFC,stroke:#CBD5E1,stroke-width:2px,color:#1F2937
+  style GATEWAY fill:#EEF7FF,stroke:#4B83B8,stroke-width:2px,color:#123A5F
+  style AUTH_GOV fill:#F7FBFF,stroke:#2F6FAD,stroke-width:3px,color:#123A5F
+  style USER fill:#F1F3FF,stroke:#6675C8,stroke-width:2px,color:#27346B
+  style USER_DB fill:#F7F8FA,stroke:#8B95A1,stroke-width:2px,color:#374151
+  style NEXT_ORDER_MODULE fill:#FFF7F0,stroke:#E8793C,stroke-width:2px,color:#7A2E13
+  style APP_ENTRY_STACK fill:transparent,stroke:transparent,color:transparent
+  style GATEWAY_BODY fill:transparent,stroke:transparent,color:transparent
+  style GATEWAY_ENTRY fill:transparent,stroke:transparent,color:transparent
+  style USER_BODY fill:transparent,stroke:transparent,color:transparent
+  style USER_SERVICE_FLOW fill:transparent,stroke:transparent,color:transparent
+
+  linkStyle default stroke:#9AA4B2,stroke-width:1.8px,color:#374151
+```
+##### 图二：order-service
+
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": true, "nodeSpacing": 12, "rankSpacing": 16, "curve": "basis"}, "themeVariables": {"fontSize": "18px", "edgeLabelBackground": "transparent"}, "themeCSS": ".edgeLabel,.edgeLabel span,.edgeLabel p,.edgeLabel div,.edgeLabel foreignObject{background-color:transparent!important;font-size:17px!important;font-weight:700!important}.edgeLabel .labelBkg,.edgeLabel rect{fill:transparent!important;stroke:transparent!important;opacity:0!important}"}}%%
+flowchart TB
+  classDef title fill:#FFFFFF,stroke-width:0px,color:#111827,font-size:22px,font-weight:bold
+  classDef upstreamGateway fill:#EAF3FF,color:#123A5F,stroke:#4B83B8,stroke-width:2.4px,stroke-dasharray:5 4
+  classDef order fill:#FFF2E8,color:#7A2E13,stroke:#E8793C,stroke-width:1.8px
+  classDef redis fill:#EAF8EE,color:#14532D,stroke:#44A36F,stroke-width:1.8px
+  classDef db fill:#F4F5F7,color:#374151,stroke:#8B95A1,stroke-width:1.8px
+  classDef warn fill:#FFF1F1,color:#8A1C1C,stroke:#D14343,stroke-width:2px
+  classDef nextSku fill:#EAF7F4,color:#14564A,stroke:#3D9B87,stroke-width:2.4px,stroke-dasharray:5 4
+  classDef nextMq fill:#F3EEFF,color:#49306B,stroke:#8B6BC0,stroke-width:2.4px,stroke-dasharray:5 4
+
+  subgraph ORDER_PAGE[" "]
+    direction TB
+    subgraph UPSTREAM_ORDER_MODULE[" "]
+      direction TB
+      UpstreamOrder["<div style='min-width:1480px;white-space:nowrap;font-size:24px;font-weight:700;padding:10px 18px'>gateway / user-service 传入：下单请求、userId、incrementId</div>"]
+    end
+    
+    subgraph NEXT_SERVICE_ROW[" "]
+      direction LR
+      subgraph NEXT_SKU_MODULE[" "]
+        direction TB
+        SkuServiceNext["sku-service 模块<br/><b>下一个流程图继续查看</b>"]
+      end
+      subgraph NEXT_MQ_MODULE[" "]
+        direction TB
+        RabbitMqNext["RabbitMQ 中间件模块<br/><b>下一个流程图继续查看</b>"]
+      end
+    end
 
     subgraph ORDER[" "]
       direction TB
       OrderTitle["order-service 模块<br/><b>下单编排 / 预扣 / 事务 / MQ 生产</b>"]
       subgraph ORDER_ENTRY_ROW[" "]
-        direction LR
+        direction TB
         OrderCreate["OrderController.createOrder<br/>接收下单 DTO 并编排主流程"]
         Debounce["Redis setIfAbsent<br/>incr:{incrementId} 3 秒防重复提交"]
       end
@@ -162,7 +218,7 @@ flowchart TB
       end
 
       subgraph ORDER_RECOVERY_ROW[" "]
-        direction LR
+        direction TB
         subgraph ROLLBACK_GOV[" "]
           direction TB
           RollbackTitle["异常补偿治理范围<br/><b>REDIS_ROLL_BACK_LOCK</b>"]
@@ -171,7 +227,16 @@ flowchart TB
           LuaRollback["Redis Lua INCRBY<br/>批量归还库存"]
           RedisRestore["Redis sku:*<br/>恢复预扣库存"]
         end
+      end
 
+      subgraph ORDER_ASYNC_ROW[" "]
+        direction TB
+        AfterCreateOrder["OrderServiceImpl.afterCreateOrder<br/>事务成功后记录并投递库存扣减消息"]
+        InsertMqMessage["MqMessageMapper.insertMessage<br/>写生产端消息记录"]
+        RabbitPublish["RabbitTemplate.convertAndSend<br/>发布 ORDER_STOCK_DEDUCT 消息"]
+        ConfirmCallback["RabbitTemplateConfig.confirm<br/>交换机确认回调"]
+        ReturnCallback["RabbitTemplateConfig.returned<br/>路由失败回调"]
+      end
         subgraph ORDER_DB[" "]
           direction TB
           OrderDbTitle["order-service 数据访问<br/><b>PostgreSQL / MyBatis</b>"]
@@ -180,93 +245,16 @@ flowchart TB
           MqMessageSent["mq_message<br/>SENT：到达交换机"]
           MqMessageFailed["mq_message<br/>FAILED：发送或路由失败"]
         end
-      end
-
-      subgraph ORDER_ASYNC_ROW[" "]
-        direction LR
-        AfterCreateOrder["OrderServiceImpl.afterCreateOrder<br/>事务成功后记录并投递库存扣减消息"]
-        InsertMqMessage["MqMessageMapper.insertMessage<br/>写生产端消息记录"]
-        RabbitPublish["RabbitTemplate.convertAndSend<br/>发布 ORDER_STOCK_DEDUCT 消息"]
-        ConfirmCallback["RabbitTemplateConfig.confirm<br/>交换机确认回调"]
-        ReturnCallback["RabbitTemplateConfig.returned<br/>路由失败回调"]
-      end
-    end
-
-      subgraph BOTTOM_STACK[" "]
-        direction LR
-        subgraph SKU[" "]
-          direction TB
-          SkuTitle["sku-service 模块<br/><b>库存查询 / 明细保存 / 消费扣减</b>"]
-          subgraph SKU_FLOW_ROW[" "]
-            direction LR
-            SkuGetStock["SkuServiceImpl.getSkuStocksByIds<br/>按 skuId 批量查询库存"]
-            subgraph SKU_DETAIL_TX[" "]
-              direction TB
-              SkuDetailTitle["本地事务背景<br/><b>@Transactional saveSkuDetail</b>"]
-              SkuSaveDetail["SkuServiceImpl.saveSkuDetail<br/>保存订单商品明细为待支付"]
-            end
-            SkuReceive["SkuConsumer.receive<br/>监听 order.queue 并手动 ack"]
-            subgraph SKU_CONSUME_TX[" "]
-              direction TB
-              SkuConsumeTitle["消费幂等事务背景<br/><b>@Transactional consumeOrderStockDeduct</b>"]
-              ConsumeService["MqOrderMessageService.consumeOrderStockDeduct<br/>按 messageId 幂等消费"]
-              InsertConsumeLog["MqConsumeLogMapper.insertIgnore<br/>插入消费成功日志，重复消息直接忽略"]
-              SaleSkuInfo["SkuServiceImpl.saleSkuInfo<br/>扣 sku_master 库存并更新 sku_detail 状态"]
-            end
-            BasicAck["channel.basicAck<br/>确认消费成功"]
-            RetryUtil["RabbitRetryUtil.retryMessage<br/>设置 retry_count 并重新入队"]
-            BasicReject["channel.basicReject<br/>超过 3 次后拒绝且不重新入队"]
-            DeadReceive["DeadConsumer.receive<br/>消费死信并保存失败现场"]
-          end
-          subgraph SKU_DB[" "]
-            direction TB
-            SkuDbTitle["sku-service 数据访问<br/><b>PostgreSQL / MyBatis</b>"]
-            SkuMasterRead["sku_master<br/>库存缓存回源读取"]
-            SkuDetailTable["sku_detail<br/>订单明细，待支付/已支付"]
-            ConsumeLogTable["mq_consume_log<br/>消费幂等记录"]
-            SkuStockUpdate["sku_master + sku_detail<br/>扣库存、加销量、更新明细状态"]
-            DeadLetterTable["mq_dead_letter_message<br/>死信消息落库"]
-          end
-        end
-
-        subgraph MQ[" "]
-          direction TB
-          MqTitle["RabbitMQ 中间件<br/><b>可靠投递 / 重试 / 死信</b>"]
-          subgraph MQ_MAIN_ROW[" "]
-            direction LR
-            OrderExchange["order.exchange<br/>DirectExchange"]
-            OrderQueue["order.queue<br/>绑定 order.routingKey.success<br/>配置死信交换机"]
-            RepublishQueue["默认交换机重新入队<br/>等待再次消费"]
-          end
-          subgraph MQ_DEAD_ROW[" "]
-            direction LR
-            DeadExchange["dead.order.exchange<br/>DirectExchange"]
-            DeadQueue["dead.order.queue<br/>保存最终失败消息"]
-          end
-        end
-      end
     end
   end
 
-  Client -->|<b>HTTP 请求进入网关</b>| GatewayFilter
-  GatewayFilter -->|<b>登录注册放行</b>| LoginBypass
-  LoginBypass -->|<b>路由 /users/**</b>| UserLogin
-  GatewayFilter -->|<b>非登录请求进入鉴权</b>| GatewayAuth
-  GatewayAuth -->|<b>查黑名单并生成请求ID</b>| RedisBlackToken
-  GatewayAuth -->|<b>JWT 校验通过</b>| JwtParse
-  JwtParse -->|<b>透传 userId / incrementId</b>| TokenFilter
-  TokenFilter -->|<b>路由 /orders/**</b>| OrderCreate
-  UserLogin -->|<b>查询用户</b>| UserMapperByName
-  UserMapperByName -->|<b>读 user_master</b>| UserMaster
-  UserLogin -->|<b>生成登录态</b>| JwtGenerate
-  UserRegister -->|<b>写入新用户</b>| UserMaster
+  UpstreamOrder -->|<b>进入下单接口</b>| OrderCreate
   OrderCreate -->|<b>防重复提交</b>| Debounce
   Debounce -->|<b>进入库存校验</b>| CheckStock
   CheckStock -->|<b>读取 sku:* 缓存</b>| RedisMultiGet
   RedisMultiGet -. <b>缓存缺失</b> .-> DbToRedis
   DbToRedis -->|<b>Feign 回源查库存</b>| FeignGetStock
-  FeignGetStock -->|<b>/skus/skuStocksByIds</b>| SkuGetStock
-  SkuGetStock -->|<b>查询库存</b>| SkuMasterRead
+  FeignGetStock -->|<b>/skus/skuStocksByIds</b>| SkuServiceNext
   DbToRedis -->|<b>写回 Redis</b>| RedisFill
   CheckStock -->|<b>按 sku 排序后加锁</b>| StockLock
   StockLock -->|<b>锁内执行预扣</b>| LuaDeduct
@@ -275,8 +263,7 @@ flowchart TB
   SentinelCreate -->|<b>保存订单主表</b>| SaveOrderInfo
   SaveOrderInfo -->|<b>写 order_info</b>| OrderInfoTable
   SentinelCreate -->|<b>Feign 保存明细</b>| FeignSaveDetail
-  FeignSaveDetail -->|<b>/skus/skuDetail</b>| SkuSaveDetail
-  SkuSaveDetail -->|<b>写 sku_detail</b>| SkuDetailTable
+  FeignSaveDetail -->|<b>/skus/skuDetail</b>| SkuServiceNext
   TxStart -. <b>异常触发补偿</b> .-> RollbackStock
   SentinelBlock -. <b>抛出业务异常</b> .-> RollbackStock
   RollbackStock -->|<b>获取回滚锁</b>| RollbackLock
@@ -286,12 +273,118 @@ flowchart TB
   AfterCreateOrder -->|<b>记录生产消息</b>| InsertMqMessage
   InsertMqMessage -->|<b>写 INIT</b>| MqMessageInit
   AfterCreateOrder -->|<b>投递库存扣减消息</b>| RabbitPublish
-  RabbitPublish -->|<b>发送到交换机</b>| OrderExchange
-  OrderExchange -->|<b>routingKey 路由</b>| OrderQueue
+  RabbitPublish -->|<b>发送到交换机</b>| RabbitMqNext
   RabbitPublish -. <b>confirm ack</b> .-> ConfirmCallback
   ConfirmCallback -->|<b>更新 SENT</b>| MqMessageSent
   RabbitPublish -. <b>return / nack</b> .-> ReturnCallback
   ReturnCallback -->|<b>更新 FAILED</b>| MqMessageFailed
+  CheckStock -. <b>库存不足</b> .-> StockFail
+  SentinelCreate -. <b>限流/熔断</b> .-> SentinelBlock
+
+  class OrderTitle,OrderDbTitle,StockLockTitle,SeataTitle,SentinelTitle,RollbackTitle title
+  class UpstreamOrder upstreamGateway
+  class OrderCreate,Debounce,CheckStock,DbToRedis,FeignGetStock,TxStart,SentinelCreate,SaveOrderInfo,FeignSaveDetail,RollbackStock,AfterCreateOrder,InsertMqMessage,RabbitPublish,ConfirmCallback,ReturnCallback order
+  class RedisMultiGet,RedisFill,StockLock,LuaDeduct,RollbackLock,LuaRollback,RedisRestore redis
+  class OrderInfoTable,MqMessageInit,MqMessageSent,MqMessageFailed db
+  class StockFail,SentinelBlock warn
+  class SkuServiceNext nextSku
+  class RabbitMqNext nextMq
+
+  style UPSTREAM_ORDER_MODULE fill:#EEF7FF,stroke:#4B83B8,stroke-width:2px,color:#123A5F
+  style NEXT_SERVICE_ROW fill:transparent,stroke:transparent,color:transparent
+  style NEXT_SKU_MODULE fill:#EFFAF7,stroke:#3D9B87,stroke-width:2px,color:#14564A
+  style NEXT_MQ_MODULE fill:#F6F1FF,stroke:#8B6BC0,stroke-width:2px,color:#49306B
+  style ORDER fill:#FFF7F0,stroke:#E8793C,stroke-width:2px,color:#7A2E13
+  style STOCK_LOCK_GOV fill:#F0FBF3,stroke:#35A56A,stroke-width:3px,color:#14532D
+  style SEATA_GOV fill:#FFF8E1,stroke:#C9A227,stroke-width:3px,color:#5C4813
+  style SENTINEL_GOV fill:#FFF0E8,stroke:#E4572E,stroke-width:3px,color:#7A2E13
+  style ROLLBACK_GOV fill:#FFF1F1,stroke:#D14343,stroke-width:3px,color:#8A1C1C
+  style ORDER_DB fill:#F7F8FA,stroke:#8B95A1,stroke-width:2px,color:#374151
+  style ORDER_PAGE fill:transparent,stroke:transparent,color:transparent
+  style ORDER_ENTRY_ROW fill:transparent,stroke:transparent,color:transparent
+  style ORDER_CORE_ROW fill:transparent,stroke:transparent,color:transparent
+  style ORDER_RECOVERY_ROW fill:transparent,stroke:transparent,color:transparent
+  style ORDER_ASYNC_ROW fill:transparent,stroke:transparent,color:transparent
+
+  linkStyle default stroke:#9AA4B2,stroke-width:1.8px,color:#374151
+```
+
+##### 图三：sku-service、RabbitMQ 中间件
+
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": true, "nodeSpacing": 18, "rankSpacing": 18, "curve": "basis"}, "themeVariables": {"fontSize": "18px", "edgeLabelBackground": "transparent"}, "themeCSS": ".edgeLabel,.edgeLabel span,.edgeLabel p,.edgeLabel div,.edgeLabel foreignObject{background-color:transparent!important;font-size:17px!important;font-weight:700!important}.edgeLabel .labelBkg,.edgeLabel rect{fill:transparent!important;stroke:transparent!important;opacity:0!important}"}}%%
+flowchart TB
+  classDef title fill:#FFFFFF,stroke-width:0px,color:#111827,font-size:22px,font-weight:bold
+  classDef upstreamOrder fill:#FFF2E8,color:#7A2E13,stroke:#E8793C,stroke-width:2.4px,stroke-dasharray:5 4
+  classDef sku fill:#EAF7F4,color:#14564A,stroke:#3D9B87,stroke-width:1.8px
+  classDef mq fill:#F3EEFF,color:#49306B,stroke:#8B6BC0,stroke-width:1.8px
+  classDef db fill:#F4F5F7,color:#374151,stroke:#8B95A1,stroke-width:1.8px
+
+  subgraph SKU_PAGE[" "]
+    direction TB
+    subgraph TOP_UPSTREAM_ROW[" "]
+      direction TB
+      UpstreamSku["<div style='min-width:1280px;white-space:nowrap;font-size:24px;font-weight:700;padding:10px 18px'>order-service 传入：库存查询、保存明细、库存扣减消息</div>"]
+    end
+
+    subgraph BOTTOM_STACK[" "]
+      direction LR
+      subgraph SKU[" "]
+        direction TB
+        SkuTitle["<div style='min-width:500px'>sku-service 模块<br/><b>库存查询 / 明细保存 / 消费扣减</b></div>"]
+        SkuGetStock["SkuServiceImpl.getSkuStocksByIds<br/>按 skuId 批量查询库存"]
+        subgraph SKU_DETAIL_TX[" "]
+          direction TB
+          SkuDetailTitle["本地事务背景<br/><b>@Transactional saveSkuDetail</b>"]
+          SkuSaveDetail["SkuServiceImpl.saveSkuDetail<br/>保存订单商品明细为待支付"]
+        end
+        SkuReceive["skuConsumer.receive<br/>监听 order.queue 并手动 ack"]
+        subgraph SKU_CONSUME_TX[" "]
+          direction TB
+          SkuConsumeTitle["消费幂等事务背景<br/><b>@Transactional consumeOrderStockDeduct</b>"]
+          ConsumeService["MqOrderMessageService.consumeOrderStockDeduct<br/>按 messageId 幂等消费"]
+          InsertConsumeLog["MqConsumeLogMapper.insertIgnore<br/>插入消费成功日志，重复消息直接忽略"]
+          SaleSkuInfo["SkuServiceImpl.saleSkuInfo<br/>扣 sku_master 库存并更新 sku_detail 状态"]
+        end
+        BasicAck["channel.basicAck<br/>确认消费成功"]
+        RetryUtil["RabbitRetryUtil.retryMessage<br/>设置 retry_count 并重新入队"]
+        BasicReject["channel.basicReject<br/>超过 3 次后拒绝且不重新入队"]
+        DeadReceive["deadConsumer.receive<br/>消费死信并保存失败现场"]
+        subgraph SKU_DB[" "]
+          direction TB
+          SkuDbTitle["sku-service 数据访问<br/><b>PostgreSQL / MyBatis</b>"]
+          SkuMasterRead["sku_master<br/>库存缓存回源读取"]
+          SkuDetailTable["sku_detail<br/>订单明细，待支付/已支付"]
+          ConsumeLogTable["mq_consume_log<br/>消费幂等记录"]
+          SkuStockUpdate["sku_master + sku_detail<br/>扣库存、加销量、更新明细状态"]
+          DeadLetterTable["mq_dead_letter_message<br/>死信消息落库"]
+        end
+      end
+
+      subgraph MQ[" "]
+        direction TB
+        MqTitle["<div style='min-width:500px'>RabbitMQ 中间件<br/><b>可靠投递 / 重试 / 死信</b></div>"]
+        subgraph MQ_MAIN_ROW[" "]
+          direction TB
+          OrderExchange["order.exchange<br/>DirectExchange"]
+          OrderQueue["order.queue<br/>绑定 order.routingKey.success<br/>配置死信交换机"]
+          RepublishQueue["默认交换机重新入队<br/>等待再次消费"]
+        end
+        subgraph MQ_DEAD_ROW[" "]
+          direction TB
+          DeadExchange["dead.order.exchange<br/>DirectExchange"]
+          DeadQueue["dead.order.queue<br/>保存最终失败消息"]
+        end
+      end
+    end
+  end
+
+  UpstreamSku -->|<b>库存缓存回源查询</b>| SkuGetStock
+  UpstreamSku -->|<b>保存订单明细</b>| SkuSaveDetail
+  UpstreamSku -->|<b>投递库存扣减消息</b>| OrderExchange
+  SkuGetStock -->|<b>查询库存</b>| SkuMasterRead
+  SkuSaveDetail -->|<b>写 sku_detail</b>| SkuDetailTable
+  OrderExchange -->|<b>routingKey 路由</b>| OrderQueue
   OrderQueue -->|<b>推送消息</b>| SkuReceive
   SkuReceive -->|<b>调用消费服务</b>| ConsumeService
   ConsumeService -->|<b>插入幂等日志</b>| InsertConsumeLog
@@ -307,73 +400,26 @@ flowchart TB
   DeadExchange -->|<b>死信路由</b>| DeadQueue
   DeadQueue -->|<b>死信消费</b>| DeadReceive
   DeadReceive -->|<b>记录失败现场</b>| DeadLetterTable
-  CommonNode -. <b>JWT 工具</b> .-> JwtParse
-  CommonNode -. <b>线程上下文</b> .-> TokenFilter
-  CommonNode -. <b>Feign 头透传</b> .-> FeignSaveDetail
-  CommonNode -. <b>MQ 常量/重试</b> .-> RetryUtil
-  CommonNode -. <b>Redis/Redisson 配置</b> .-> CheckStock
-  GatewayAuth -. <b>鉴权失败</b> .-> RejectResponse
-  CheckStock -. <b>库存不足</b> .-> StockFail
-  SentinelCreate -. <b>限流/熔断</b> .-> SentinelBlock
 
-  class CallerTitle,GatewayTitle,AuthTitle,UserTitle,UserDbTitle,OrderTitle,OrderDbTitle,StockLockTitle,SeataTitle,SentinelTitle,RollbackTitle,SkuTitle,SkuDetailTitle,SkuConsumeTitle,SkuDbTitle,MqTitle,CommonTitle title
-  class Client caller
-  class GatewayFilter,LoginBypass,GatewayAuth,JwtParse,TokenFilter gateway
-  class UserLogin,UserMapperByName,JwtGenerate,UserRegister user
-  class OrderCreate,Debounce,CheckStock,DbToRedis,FeignGetStock,TxStart,SentinelCreate,SaveOrderInfo,FeignSaveDetail,RollbackStock,AfterCreateOrder,InsertMqMessage,RabbitPublish,ConfirmCallback,ReturnCallback order
+  class SkuTitle,SkuDetailTitle,SkuConsumeTitle,SkuDbTitle,MqTitle title
+  class UpstreamSku upstreamOrder
   class SkuGetStock,SkuSaveDetail,SkuReceive,ConsumeService,InsertConsumeLog,SaleSkuInfo,BasicAck,RetryUtil,BasicReject,DeadReceive sku
-  class RedisBlackToken,RedisMultiGet,RedisFill,StockLock,LuaDeduct,RollbackLock,LuaRollback,RedisRestore redis
   class OrderExchange,OrderQueue,RepublishQueue,DeadExchange,DeadQueue mq
-  class UserMaster,SkuMasterRead,OrderInfoTable,SkuDetailTable,MqMessageInit,MqMessageSent,MqMessageFailed,ConsumeLogTable,SkuStockUpdate,DeadLetterTable db
-  class CommonNode common
-  class RejectResponse,StockFail,SentinelBlock warn
+  class SkuMasterRead,SkuDetailTable,ConsumeLogTable,SkuStockUpdate,DeadLetterTable db
 
-  style CALLER fill:#F8FAFC,stroke:#CBD5E1,stroke-width:2px,color:#1F2937
-  style GATEWAY fill:#EEF7FF,stroke:#4B83B8,stroke-width:2px,color:#123A5F
-  style AUTH_GOV fill:#F7FBFF,stroke:#2F6FAD,stroke-width:3px,color:#123A5F
-  style USER fill:#F1F3FF,stroke:#6675C8,stroke-width:2px,color:#27346B
-  style ORDER fill:#FFF7F0,stroke:#E8793C,stroke-width:2px,color:#7A2E13
-  style STOCK_LOCK_GOV fill:#F0FBF3,stroke:#35A56A,stroke-width:3px,color:#14532D
-  style SEATA_GOV fill:#FFF8E1,stroke:#C9A227,stroke-width:3px,color:#5C4813
-  style SENTINEL_GOV fill:#FFF0E8,stroke:#E4572E,stroke-width:3px,color:#7A2E13
-  style ROLLBACK_GOV fill:#FFF1F1,stroke:#D14343,stroke-width:3px,color:#8A1C1C
   style SKU fill:#EFFAF7,stroke:#3D9B87,stroke-width:2px,color:#14564A
   style SKU_DETAIL_TX fill:#F4FCFA,stroke:#3D9B87,stroke-width:3px,color:#14564A
   style SKU_CONSUME_TX fill:#F4FCFA,stroke:#3D9B87,stroke-width:3px,color:#14564A
   style MQ fill:#F6F1FF,stroke:#8B6BC0,stroke-width:2px,color:#49306B
-  style USER_DB fill:#F7F8FA,stroke:#8B95A1,stroke-width:2px,color:#374151
-  style ORDER_DB fill:#F7F8FA,stroke:#8B95A1,stroke-width:2px,color:#374151
   style SKU_DB fill:#F7F8FA,stroke:#8B95A1,stroke-width:2px,color:#374151
-  style SPLIT_ROW fill:transparent,stroke:transparent,color:transparent
-  style RIGHT_HALF fill:transparent,stroke:transparent,color:transparent
-  style TOP_STACK fill:transparent,stroke:transparent,color:transparent
-  style TOP_ROW fill:transparent,stroke:transparent,color:transparent
-  style APP_ENTRY_STACK fill:transparent,stroke:transparent,color:transparent
+  style SKU_PAGE fill:transparent,stroke:transparent,color:transparent
+  style TOP_UPSTREAM_ROW fill:transparent,stroke:transparent,color:transparent
   style BOTTOM_STACK fill:transparent,stroke:transparent,color:transparent
-  style GATEWAY_BODY fill:transparent,stroke:transparent,color:transparent
-  style GATEWAY_ENTRY fill:transparent,stroke:transparent,color:transparent
-  style USER_BODY fill:transparent,stroke:transparent,color:transparent
-  style USER_SERVICE_FLOW fill:transparent,stroke:transparent,color:transparent
-  style ORDER_ENTRY_ROW fill:transparent,stroke:transparent,color:transparent
-  style ORDER_CORE_ROW fill:transparent,stroke:transparent,color:transparent
-  style ORDER_RECOVERY_ROW fill:transparent,stroke:transparent,color:transparent
-  style ORDER_ASYNC_ROW fill:transparent,stroke:transparent,color:transparent
-  style SKU_FLOW_ROW fill:transparent,stroke:transparent,color:transparent
   style MQ_MAIN_ROW fill:transparent,stroke:transparent,color:transparent
   style MQ_DEAD_ROW fill:transparent,stroke:transparent,color:transparent
-  style COMMON fill:#FFF9E6,stroke:#B89B31,stroke-width:2px,color:#5C4813
 
-  linkStyle default stroke:#9AA4B2,stroke-width:1.6px,color:#374151
-  linkStyle 0,7,12,13,20,21,22,23,24,34,44,45,48,50 stroke:#E4572E,stroke-width:3px,color:#E4572E
-  linkStyle 1,2,3,4,5,6,8,10 stroke:#2F6FAD,stroke-width:2.4px,color:#2F6FAD
-  linkStyle 14,15,19,31,32,33,63,65 stroke:#2E7D6B,stroke-width:2.4px,color:#2E7D6B
-  linkStyle 16,17,26,27,61 stroke:#2D8A8A,stroke-width:2.4px,color:#2D8A8A
-  linkStyle 35,36,37,38,39,40,41,42,43,52,53,55,56,57 stroke:#7A5BA6,stroke-width:2.4px,color:#7A5BA6
-  linkStyle 9,11,18,25,28,36,41,43,47,49,58 stroke:#6B7280,stroke-width:2.2px,color:#6B7280
-  linkStyle 29,30,51,54,64,65,66 stroke:#C2410C,stroke-width:2.6px,stroke-dasharray:5 4,color:#C2410C
-  linkStyle 59,60,61,62,63 stroke:#8A6A16,stroke-width:1.8px,stroke-dasharray:4 4,color:#8A6A16
+  linkStyle default stroke:#9AA4B2,stroke-width:1.8px,color:#374151
 ```
-
 ### 2.2 思维导图
 
 ```mermaid
@@ -426,12 +472,12 @@ flowchart LR
   SkuDbRead["PostgreSQL<br/>sku_master / sku_detail"]
   SkuDetail["SkuService.saveSkuDetail<br/>订单明细保存"]
   SkuDetailDb["PostgreSQL<br/>sku_detail"]
-  SkuConsume["SkuConsumer.receive<br/>消费库存扣减消息"]
+  SkuConsume["skuConsumer.receive<br/>消费库存扣减消息"]
   ConsumeLog["MqOrderMessageService<br/>幂等消费记录"]
   ConsumeLogDb["PostgreSQL<br/>mq_consume_log"]
   SaleSku["SkuService.saleSkuInfo<br/>扣库存、加销量、改明细状态"]
   SkuUpdateDb["PostgreSQL<br/>sku_master / sku_detail"]
-  RetryDead["RabbitRetryUtil / DeadConsumer<br/>重试和死信落库"]
+  RetryDead["RabbitRetryUtil / deadConsumer<br/>重试和死信落库"]
   DeadDb["PostgreSQL<br/>mq_dead_letter_message"]
 
   Common["common<br/>公共能力模块"]
@@ -520,8 +566,8 @@ flowchart LR
 |               | Service | `afterCreateOrder` | insert `mq_message`、`convertAndSend` | RabbitMQ confirm/return | `mq_message` | `INIT -> SENT/FAILED` | 当前创建订单后直接发送扣库存消息 |
 | sku-service   | REST | `POST /skus/skuStocksByIds` | `getSkuStocksByIds` | PostgreSQL | `sku_master`、`sku_detail` | 无显式事务 | 给订单服务恢复 Redis 库存缓存 |
 |               | REST | `POST /skus/skuDetail` | `saveSkuDetail` | PostgreSQL、Seata RM | `sku_detail` | `@Transactional` | 保存订单明细，状态待付款 |
-|               | MQ | `SkuConsumer` | `consumeOrderStockDeduct` -> `saleSkuInfo` | RabbitMQ manual ACK、RetryUtil | `mq_consume_log`、`sku_master`、`sku_detail` | 幂等 + 事务 | 超过 3 次进入死信 |
-|               | MQ | `DeadConsumer` | `insertMessage` | RabbitMQ dead exchange/queue | `mq_dead_letter_message` | manual ACK | 记录 payload/header/failReason |
+|               | MQ | `skuConsumer` | `consumeOrderStockDeduct` -> `saleSkuInfo` | RabbitMQ manual ACK、RetryUtil | `mq_consume_log`、`sku_master`、`sku_detail` | 幂等 + 事务 | 超过 3 次进入死信 |
+|               | MQ | `deadConsumer` | `insertMessage` | RabbitMQ dead exchange/queue | `mq_dead_letter_message` | manual ACK | 记录 payload/header/failReason |
 
 ## 4. 中间件配置分析
 

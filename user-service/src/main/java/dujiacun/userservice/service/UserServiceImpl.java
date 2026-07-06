@@ -80,6 +80,8 @@ public class UserServiceImpl implements IUserService {
         tokenMap.put(STR_TOKEN, token);
         tokenMap.put(STR_TOKEN_HEADER, TOKEN_HEADER);
         tokenMap.put(STR_IS_ADMIN, userEntity.getIsAdmin());
+        // 将当前登录用户ID返回给前端，便于前端保存登录用户上下文。
+        tokenMap.put(STR_USER_ID, userEntity.getUserId());
 
         return tokenMap;
     }

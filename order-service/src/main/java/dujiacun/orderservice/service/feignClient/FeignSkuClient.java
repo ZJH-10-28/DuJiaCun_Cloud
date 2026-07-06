@@ -4,7 +4,6 @@ import dujiacun.common.CommonResult;
 import dujiacun.orderservice.entity.SkuResponseDto;
 import dujiacun.orderservice.entity.SkuStock;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -18,12 +17,6 @@ public interface FeignSkuClient {
 
     @PostMapping("/skus/skuStocksByIds")
     Map<Long, Integer> getStocksBySkuIds(@RequestBody List<Long> skuIds);
-
-    @PostMapping("/skus/skuOrder")
-    CommonResult<String> saleSkuInfo(
-            @RequestParam("skuId") Long skuId,
-            @RequestParam("saleCount") Integer saleCount
-    );
 
     @PostMapping("/skus/skuDetail")
     CommonResult<String> saveSkuDetail(

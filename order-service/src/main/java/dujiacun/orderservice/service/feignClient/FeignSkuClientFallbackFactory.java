@@ -25,12 +25,6 @@ public class FeignSkuClientFallbackFactory implements FallbackFactory<FeignSkuCl
             }
 
             @Override
-            public CommonResult<String> saleSkuInfo(Long skuId, Integer saleCount) {
-                log.warn("库存服务扣减库存降级,skuId={},saleCount={}", skuId, saleCount, cause);
-                return CommonResult.error("库存服务暂不可用，请稍后再试");
-            }
-
-            @Override
             public CommonResult<String> saveSkuDetail(Long orderId, List<SkuStock> skuStockList) {
                 log.warn("库存服务保存订单明细降级,orderId={}", orderId, cause);
                 return CommonResult.error("订单明细保存失败，请稍后再试");

@@ -98,7 +98,7 @@ public class SkuServiceImpl implements ISkuService{
     @Transactional(rollbackFor = Exception.class)
     public CommonResult<String> saveSkuDetail(Long orderId, List<SkuStock> skuStockList) {
         log.info("开始保存订单明细");
-        Integer detailResult = skuMapper.saveSkuDetail(orderId,skuStockList,ORDER_STATUS_WAIT_FOR_PAY);
+        int detailResult = skuMapper.saveSkuDetail(orderId,skuStockList,ORDER_STATUS_WAIT_FOR_PAY);
         if (detailResult <= 0){
             throw new BusinessException("订单明细保存失败");
         }
@@ -117,18 +117,19 @@ public class SkuServiceImpl implements ISkuService{
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public CommonResult<String> saleSkuInfo(Long skuId) {
-        int pendingSkuCount = skuMapper.countPendingSkuDetail(skuId);
+    public CommonResult<String> saleSkuInfo(Long orderId) {
+        // MQ消费传入的是订单ID，库存扣减必须基于该订单下的全部待支付明细执行。
+        int pendingSkuCount = skuMapper.countPendingSkuDetail(orderId);
         if (pendingSkuCount <= 0) {
             throw new BusinessException("库存扣减失败");
         }
 
-        int masterUpdated = skuMapper.deductSkuMasterByOrderId(skuId);
+        int masterUpdated = skuMapper.deductSkuMasterByOrderId(orderId);
         if (masterUpdated != pendingSkuCount) {
             throw new BusinessException("库存不足或扣减不完整");
         }
 
-        int detailUpdated = skuMapper.updateSkuDetailStatus(skuId, IS_SALE);
+        int detailUpdated = skuMapper.updateSkuDetailStatus(orderId, IS_SALE);
         if (detailUpdated <= 0) {
             throw new BusinessException("库存扣减失败");
         }

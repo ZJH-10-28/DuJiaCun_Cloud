@@ -3,6 +3,7 @@ package dujiacun.orderservice.service.impl;
 import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
 import dujiacun.common.CommonResult;
+import dujiacun.common.error.ErrorCode;
 import dujiacun.common.exception.BusinessException;
 import dujiacun.orderservice.entity.SkuStock;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
@@ -107,7 +108,7 @@ public class CreateOrderServiceImpl implements ICreateOrderService {
      */
     public CommonResult<Long> handleDeductStockBlock(Long userId, OrderParamBo orderParamBo, BlockException ex) {
         log.warn("创建订单被Sentinel限流或熔断,userId={},reason={}", userId, ex.getMessage());
-        throw new BusinessException("系统正忙，请稍后再试");
+        throw new BusinessException(ErrorCode.SERVICE_DEGRADED);
     }
 
     /**

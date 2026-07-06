@@ -3,16 +3,19 @@ package dujiacun.orderservice.config;
 import dujiacun.orderservice.mapper.MqMessageMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.DirectExchange;
+import org.springframework.amqp.core.Exchange;
+import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.ReturnedMessage;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import static dujiacun.common.constant.RabbitMQConstant.MQ_MESSAGE_ID_ORDER_PREFIX;
-import static dujiacun.common.constant.RabbitMQConstant.MQ_STATUS_FAILED;
-import static dujiacun.common.constant.RabbitMQConstant.MQ_STATUS_INIT;
-import static dujiacun.common.constant.RabbitMQConstant.MQ_STATUS_SENT;
+import static dujiacun.common.constant.RabbitMQConstant.*;
 
 @Slf4j
 @Configuration
@@ -28,6 +31,27 @@ public class RabbitTemplateConfig {
     public void init() {
         rabbitTemplate.setConfirmCallback(this::confirm);
         rabbitTemplate.setReturnsCallback(this::returned);
+    }
+
+    @Bean
+    public Queue orderRollbackQueue() {
+        // Redis回滚补偿消息需要持久化队列,避免服务重启造成补偿消息丢失。
+        return new Queue(ORDER_ROLLBACK_QUEUE, true);
+    }
+
+    @Bean
+    public Exchange orderRollbackExchange() {
+        // 回滚补偿使用独立交换机,避免和订单库存扣减消息混用路由。
+        return new DirectExchange(ORDER_ROLLBACK_EXCHANGE, true, false);
+    }
+
+    @Bean
+    public Binding orderRollbackBinding() {
+        // 将回滚队列绑定到回滚路由键,消费者只处理Redis库存回滚消息。
+        return BindingBuilder.bind(orderRollbackQueue())
+                .to(orderRollbackExchange())
+                .with(ROLLBACK_ROUTING_KEY)
+                .noargs();
     }
 
     private void confirm(CorrelationData correlationData, boolean ack, String cause) {

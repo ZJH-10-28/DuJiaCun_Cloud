@@ -21,7 +21,7 @@ public interface IOrderService {
 
     CommonResult<Long> afterCreateOrder(Long orderId);
 
-    void rollbackStock(List<SkuStock> skuStockList) throws InterruptedException;
+    void rollbackStock(List<SkuStock> skuStockList, String rollbackId) throws InterruptedException;
 
     void saveOrderInfo(OrderParamBo orderParamBo);
 }

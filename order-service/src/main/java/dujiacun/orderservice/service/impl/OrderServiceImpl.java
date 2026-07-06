@@ -50,6 +50,8 @@ public class OrderServiceImpl implements IOrderService {
 
     private static final long EMPTY_STOCK_CACHE_RANDOM_TTL_SECONDS = 240;
 
+    private static final long ROLLBACK_IDEMPOTENT_TTL_SECONDS = 7 * 24 * 60 * 60;
+
     @Autowired
     private OrderMapper orderMapper;
 
@@ -254,7 +256,7 @@ public class OrderServiceImpl implements IOrderService {
         return CommonResult.success("Redis预扣减成功");
     }
 
-    public void rollbackStock(List<SkuStock> skuStockList) throws InterruptedException {
+    public void rollbackStock(List<SkuStock> skuStockList, String rollbackId) throws InterruptedException {
         List<RLock> rollBackLocks = skuStockList.stream()
                 .map(SkuStock::getSkuId)
                 .distinct()
@@ -282,17 +284,27 @@ public class OrderServiceImpl implements IOrderService {
                             return;
                         }
                         String rollBackLuaScript =
-                                "for i, key in ipairs(KEYS) do " +
-                                "   redis.call('INCRBY', key, ARGV[i]) " +
+                                "local idempotentKey = ARGV[1] " +
+                                "if redis.call('EXISTS', idempotentKey) == 1 then " +
+                                "   return -1 " +
                                 "end " +
+                                "for i, key in ipairs(KEYS) do " +
+                                "   redis.call('INCRBY', key, ARGV[i + 1]) " +
+                                "end " +
+                                "redis.call('SETEX', idempotentKey, ARGV[#ARGV], '1') " +
                                 "return -1";
                         //批量写入Redis
                         List<String> keys = new ArrayList<>(needRollBackSkusMap.keySet());
                         List<Integer> values = new ArrayList<>(needRollBackSkusMap.values());
+                        List<Object> args = new ArrayList<>();
+                        // 使用rollbackId幂等Key保证同步回滚和MQ补偿最多只有一次真正加回库存。
+                        args.add("rollback:stock:" + rollbackId);
+                        args.addAll(values);
+                        args.add(ROLLBACK_IDEMPOTENT_TTL_SECONDS);
                         long result = (long) redisTemplate.execute(
                                 new DefaultRedisScript<>(rollBackLuaScript, long.class),
                                 keys,
-                                values.toArray()
+                                args.toArray()
                         );
                         if (result >= 0){
                             throw new BusinessException("Redis回滚库存失败");

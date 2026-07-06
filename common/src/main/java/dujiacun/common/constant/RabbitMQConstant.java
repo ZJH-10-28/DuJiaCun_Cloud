@@ -17,6 +17,15 @@ public interface RabbitMQConstant {
     // 订单库存扣减路由键
     String ROUTING_KEY = "order.routingKey.success";
 
+    // 订单Redis库存回滚交换机
+    String ORDER_ROLLBACK_EXCHANGE = "order.rollback.exchange";
+
+    // 订单Redis库存回滚队列
+    String ORDER_ROLLBACK_QUEUE = "order.rollback.queue";
+
+    // 订单Redis库存回滚路由键
+    String ROLLBACK_ROUTING_KEY = "order.routingKey.rollback";
+
     // 订单死信队列
     String DEAD_ORDER_QUEUE = "dead.order.queue";
 
@@ -29,8 +38,14 @@ public interface RabbitMQConstant {
     // 订单库存扣减业务消息类型
     String MQ_BIZ_TYPE_ORDER_STOCK_DEDUCT = "ORDER_STOCK_DEDUCT";
 
+    // 订单Redis库存回滚业务消息类型
+    String MQ_BIZ_TYPE_ORDER_STOCK_ROLLBACK = "ORDER_STOCK_ROLLBACK";
+
     // 订单消息ID前缀
     String MQ_MESSAGE_ID_ORDER_PREFIX = "order:";
+
+    // 订单Redis库存回滚消息ID前缀
+    String MQ_MESSAGE_ID_ROLLBACK_PREFIX = "rollback:";
 
     // MQ消息头:业务类型
     String MQ_HEADER_BIZ_TYPE = "biz_type";

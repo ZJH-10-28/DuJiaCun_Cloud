@@ -40,18 +40,36 @@ public class CreateOrderServiceImpl implements ICreateOrderService {
     @Lazy
     private ICreateOrderService createOrderService;
 
+    @Autowired
+    private RollbackMessageService rollbackMessageService;
+
     @GlobalTransactional(rollbackFor = Exception.class)
     public CommonResult<Long> createOrderWithTransaction(Long userId, OrderParamBo orderParamBo) throws InterruptedException {
         try {
             return createOrderService.createOrder(userId, orderParamBo);
         } catch (BusinessException e) {
             log.error("创建订单业务异常,执行Redis回滚", e);
-            orderService.rollbackStock(orderParamBo.getSkuStockList());
+            rollbackStockOrSendMq(orderParamBo);
             throw e;
         } catch (Exception e) {
             log.error("创建订单系统异常,执行Redis回滚", e);
-            orderService.rollbackStock(orderParamBo.getSkuStockList());
+            rollbackStockOrSendMq(orderParamBo);
             throw new BusinessException("订单创建失败");
+        }
+    }
+
+    private void rollbackStockOrSendMq(OrderParamBo orderParamBo) {
+        try {
+            // 订单创建失败后优先同步回滚Redis库存,减少库存短暂不一致时间。
+            orderService.rollbackStock(orderParamBo.getSkuStockList(), orderParamBo.getRollbackId());
+        } catch (Exception rollbackException) {
+            // 同步回滚失败时先记录可靠消息,再交给MQ消费者异步补偿。
+            log.error("Redis同步回滚失败,准备发送MQ补偿,rollbackId={}", orderParamBo.getRollbackId(), rollbackException);
+            rollbackMessageService.saveAndSendRollbackMessage(orderParamBo, 1, rollbackException);
+            if (rollbackException instanceof InterruptedException) {
+                // 保留线程中断标记,但不覆盖原始订单创建异常。
+                Thread.currentThread().interrupt();
+            }
         }
     }
 

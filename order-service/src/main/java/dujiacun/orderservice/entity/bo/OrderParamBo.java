@@ -31,6 +31,11 @@ public class OrderParamBo {
      * 订单状态
      */
     private Integer orderStatus;
+
+    /**
+     * Redis预扣减回滚幂等标识
+     */
+    private String rollbackId;
 }
 
 

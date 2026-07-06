@@ -9,6 +9,8 @@ public interface MqMessageMapper {
 
     int insertMessage(@Param("message") MqMessage message);
 
+    MqMessage selectByMessageId(@Param("messageId") String messageId);
+
     int updateStatus(
             @Param("messageId") String messageId,
             @Param("status") String status,

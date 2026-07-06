@@ -22,6 +22,7 @@ public class RabbitRetryUtil {
         message.getMessageProperties().getHeaders().put(STR_RETRY_COUNT, retryCount);
 
         AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
+                .messageId(message.getMessageProperties().getMessageId()) // 保留原消息ID，便于可靠消息表继续追踪同一条业务消息
                 .deliveryMode(2) //消息持久化 1:存内存 2:存磁盘
                 .expiration("60000") // 过期时间 ms
                 .headers(message.getMessageProperties().getHeaders())

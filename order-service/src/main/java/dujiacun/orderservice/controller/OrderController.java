@@ -72,6 +72,8 @@ public class OrderController {
         if (checkResult.getCode() != ErrorCode.SUCCESS.getCode()){
             return CommonResult.error("订单预扣减失败");
         }
+        // Redis预扣减成功后生成回滚幂等标识,不依赖订单ID生成逻辑。
+        orderParamBo.setRollbackId("user:" + userId + ":increment:" + incrementId);
         CommonResult<Long> result = createOrderService.createOrderWithTransaction(Long.parseLong(UserThreadLocal.getUserId()), orderParamBo);
         if (result.getCode() != ErrorCode.SUCCESS.getCode()) {
 //            orderService.rollbackStock(orderParamBo.getSkuStockList());

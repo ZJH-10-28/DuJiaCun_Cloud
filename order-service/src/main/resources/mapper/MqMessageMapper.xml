@@ -34,6 +34,22 @@
         ON CONFLICT (message_id) DO NOTHING
     </insert>
 
+    <select id="selectByMessageId" resultType="dujiacun.orderservice.entity.MqMessage">
+        SELECT
+            message_id AS messageId,
+            biz_type AS bizType,
+            biz_id AS bizId,
+            exchange_name AS exchangeName,
+            routing_key AS routingKey,
+            payload,
+            status,
+            retry_count AS retryCount,
+            max_retry_count AS maxRetryCount,
+            fail_reason AS failReason
+        FROM mq_message
+        WHERE message_id = #{messageId,jdbcType=VARCHAR}
+    </select>
+
     <update id="updateStatus">
         UPDATE mq_message
         SET

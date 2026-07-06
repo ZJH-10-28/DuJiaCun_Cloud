@@ -20,7 +20,7 @@ import static dujiacun.common.constant.RabbitMQConstant.*;
 
 @Slf4j
 @Component
-public class deadConsumer {
+public class DeadConsumer {
 
     @Autowired
     private MqDeadLetterMessageMapper mqDeadLetterMessageMapper;

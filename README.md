@@ -28,8 +28,8 @@
 - **下单主链路**：`OrderController.createOrder` 做 Redis 防重复提交，再由 `OrderServiceImpl.checkStock` 查询/补齐库存缓存，并在 Redisson 锁内用 Lua 原子预扣 Redis 库存。
 - **订单创建事务**：`CreateOrderServiceImpl.createOrderWithTransaction` 开启 Seata 全局事务，`createOrder` 受 Sentinel 保护，事务内保存 `order_info` 并通过 Feign 调用 `SkuServiceImpl.saveSkuDetail` 保存 `sku_detail`。
 - **事务成功后的异步链路**：`OrderServiceImpl.afterCreateOrder` 先写 `mq_message=INIT`，再投递 RabbitMQ；生产者 confirm/returns 回调把消息状态更新为 `SENT` 或 `FAILED`。
-- **库存最终扣减**：`skuConsumer.receive` 监听 `order.queue`，`MqOrderMessageService.consumeOrderStockDeduct` 先写幂等消费日志，再调用 `SkuServiceImpl.saleSkuInfo` 扣减 `sku_master` 并更新 `sku_detail` 状态。
-- **异常补偿路径**：创建订单或 Sentinel 降级抛异常时回滚 Redis 预扣库存；消费异常时通过 `RabbitRetryUtil` 重试，超过 3 次后 `basicReject` 进入死信队列并由 `deadConsumer.receive` 落库。
+- **库存最终扣减**：`SkuConsumer.receive` 监听 `order.queue`，`MqOrderMessageService.consumeOrderStockDeduct` 先写幂等消费日志，再调用 `SkuServiceImpl.saleSkuInfo` 扣减 `sku_master` 并更新 `sku_detail` 状态。
+- **异常补偿路径**：创建订单或 Sentinel 降级抛异常时回滚 Redis 预扣库存；消费异常时通过 `RabbitRetryUtil` 重试，超过 3 次后 `basicReject` 进入死信队列并由 `DeadConsumer.receive` 落库。
 
 ##### 模块边界与治理范围
 
@@ -205,7 +205,7 @@ flowchart TB
               SkuDetailTitle["本地事务背景<br/><b>@Transactional saveSkuDetail</b>"]
               SkuSaveDetail["SkuServiceImpl.saveSkuDetail<br/>保存订单商品明细为待支付"]
             end
-            SkuReceive["skuConsumer.receive<br/>监听 order.queue 并手动 ack"]
+            SkuReceive["SkuConsumer.receive<br/>监听 order.queue 并手动 ack"]
             subgraph SKU_CONSUME_TX[" "]
               direction TB
               SkuConsumeTitle["消费幂等事务背景<br/><b>@Transactional consumeOrderStockDeduct</b>"]
@@ -216,7 +216,7 @@ flowchart TB
             BasicAck["channel.basicAck<br/>确认消费成功"]
             RetryUtil["RabbitRetryUtil.retryMessage<br/>设置 retry_count 并重新入队"]
             BasicReject["channel.basicReject<br/>超过 3 次后拒绝且不重新入队"]
-            DeadReceive["deadConsumer.receive<br/>消费死信并保存失败现场"]
+            DeadReceive["DeadConsumer.receive<br/>消费死信并保存失败现场"]
           end
           subgraph SKU_DB[" "]
             direction TB
@@ -426,12 +426,12 @@ flowchart LR
   SkuDbRead["PostgreSQL<br/>sku_master / sku_detail"]
   SkuDetail["SkuService.saveSkuDetail<br/>订单明细保存"]
   SkuDetailDb["PostgreSQL<br/>sku_detail"]
-  SkuConsume["skuConsumer.receive<br/>消费库存扣减消息"]
+  SkuConsume["SkuConsumer.receive<br/>消费库存扣减消息"]
   ConsumeLog["MqOrderMessageService<br/>幂等消费记录"]
   ConsumeLogDb["PostgreSQL<br/>mq_consume_log"]
   SaleSku["SkuService.saleSkuInfo<br/>扣库存、加销量、改明细状态"]
   SkuUpdateDb["PostgreSQL<br/>sku_master / sku_detail"]
-  RetryDead["RabbitRetryUtil / deadConsumer<br/>重试和死信落库"]
+  RetryDead["RabbitRetryUtil / DeadConsumer<br/>重试和死信落库"]
   DeadDb["PostgreSQL<br/>mq_dead_letter_message"]
 
   Common["common<br/>公共能力模块"]
@@ -520,8 +520,8 @@ flowchart LR
 |               | Service | `afterCreateOrder` | insert `mq_message`、`convertAndSend` | RabbitMQ confirm/return | `mq_message` | `INIT -> SENT/FAILED` | 当前创建订单后直接发送扣库存消息 |
 | sku-service   | REST | `POST /skus/skuStocksByIds` | `getSkuStocksByIds` | PostgreSQL | `sku_master`、`sku_detail` | 无显式事务 | 给订单服务恢复 Redis 库存缓存 |
 |               | REST | `POST /skus/skuDetail` | `saveSkuDetail` | PostgreSQL、Seata RM | `sku_detail` | `@Transactional` | 保存订单明细，状态待付款 |
-|               | MQ | `skuConsumer` | `consumeOrderStockDeduct` -> `saleSkuInfo` | RabbitMQ manual ACK、RetryUtil | `mq_consume_log`、`sku_master`、`sku_detail` | 幂等 + 事务 | 超过 3 次进入死信 |
-|               | MQ | `deadConsumer` | `insertMessage` | RabbitMQ dead exchange/queue | `mq_dead_letter_message` | manual ACK | 记录 payload/header/failReason |
+|               | MQ | `SkuConsumer` | `consumeOrderStockDeduct` -> `saleSkuInfo` | RabbitMQ manual ACK、RetryUtil | `mq_consume_log`、`sku_master`、`sku_detail` | 幂等 + 事务 | 超过 3 次进入死信 |
+|               | MQ | `DeadConsumer` | `insertMessage` | RabbitMQ dead exchange/queue | `mq_dead_letter_message` | manual ACK | 记录 payload/header/failReason |
 
 ## 4. 中间件配置分析
 

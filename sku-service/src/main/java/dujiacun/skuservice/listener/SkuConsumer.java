@@ -15,7 +15,7 @@ import static dujiacun.common.constant.RabbitMQConstant.*;
 
 @Slf4j
 @Component
-public class skuConsumer {
+public class SkuConsumer {
 
     @Autowired
     private MqOrderMessageService mqOrderMessageService;

@@ -1004,14 +1004,3 @@ public class JwtUtil {
     }
 }
 ```
-
-## 5. 风险备注
-
-| 项目 | 位置 | 现象 | 建议 |
-| --- | --- | --- | --- |
-| SKU 扣减方法命名 | `SkuServiceImpl.saleSkuInfo(Long skuId)` | Mapper 实际按 `order_id` 扣减 `sku_detail/sku_master` | 后续可重命名参数或方法，降低误读 |
-| 支付模块 TODO | `OrderServiceImpl.afterCreateOrder` | 当前创建订单后直接发送 MQ 扣库存消息 | 如果业务要求支付成功后扣库存，需要调整发送时机 |
-| JWT 密钥 | `JwtUtil` | `@Value` 被注释，实际使用 static 硬编码密钥 | 生产环境建议外置配置和密钥管理 |
-| Gateway header mutate | `MyGlobalFilter` | request mutate 后需要确认是否 build 到 exchange | 联调确认下游是否稳定拿到 `userId/incrementId` |
-| Seata XID | `FeignConfig` | XID 透传代码被注释 | 若跨服务事务异常，优先确认 XID 是否正确传播 |
-

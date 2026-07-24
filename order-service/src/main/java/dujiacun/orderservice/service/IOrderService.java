@@ -17,6 +17,8 @@ public interface IOrderService {
 
     PageInfo<OrderResponseDto> getOrderInfoByUserId(Integer pageNum, Integer pageSize, Long userId);
 
+    OrderInfoBo getOrderInfoByIdempotency(Long userId, String idempotencyKey);
+
     CommonResult checkStock(List<SkuStock> skuStockList) throws InterruptedException;
 
     CommonResult<Long> afterCreateOrder(Long orderId);

@@ -39,6 +39,11 @@ public interface SysConstant {
     String STR_INCREMENT_ID = "incrementId";
 
     /**
+     * 下单幂等请求头名称
+     */
+    String STR_IDEMPOTENCY_KEY = "Idempotency-Key";
+
+    /**
      * session中存储的用户名称
      */
     String STR_USER_NAME = "userName";
@@ -66,6 +71,11 @@ public interface SysConstant {
      * 订单幂等校验
      */
     String STR_ORDER_INCR = "orderIncr:";
+
+    /**
+     * 订单业务幂等校验
+     */
+    String STR_ORDER_IDEMPOTENT = "order:idempotent:";
 
     /**
      * 商品锁

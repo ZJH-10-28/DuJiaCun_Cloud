@@ -178,6 +178,12 @@ public class OrderServiceImpl implements IOrderService {
         return responseDtoPageInfo;
     }
 
+    @Override
+    public OrderInfoBo getOrderInfoByIdempotency(Long userId, String idempotencyKey) {
+        // 根据用户ID和幂等Key查询已有订单,用于数据库唯一约束兜底后的重复请求返回。
+        return BeanConvertUtil.convert(orderMapper.getOrderInfoByIdempotency(userId, idempotencyKey), OrderInfoBo.class);
+    }
+
 
     public CommonResult checkStock(List<SkuStock> skuStockList) throws InterruptedException {
 

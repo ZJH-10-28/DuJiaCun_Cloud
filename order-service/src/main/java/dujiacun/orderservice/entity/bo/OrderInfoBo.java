@@ -10,6 +10,16 @@ public class OrderInfoBo {
 
     private Long userId;
 
+    /**
+     * 客户端下单幂等标识
+     */
+    private String idempotencyKey;
+
+    /**
+     * 下单请求体摘要
+     */
+    private String requestHash;
+
     private Double orderPrice;
 
     private LocalDateTime createTime;

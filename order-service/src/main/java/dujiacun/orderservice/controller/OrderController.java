@@ -14,19 +14,18 @@ import dujiacun.orderservice.entity.dto.OrderRequestDto;
 import dujiacun.orderservice.entity.dto.OrderResponseDto;
 import dujiacun.orderservice.service.ICreateOrderService;
 import dujiacun.orderservice.service.IOrderService;
+import dujiacun.orderservice.service.impl.OrderIdempotencyService;
 import dujiacun.orderservice.service.feignClient.FeignSkuClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
-import static dujiacun.common.constant.SysConstant.STR_ORDER_INCR;
+import static dujiacun.common.constant.SysConstant.STR_IDEMPOTENCY_KEY;
 
 @Slf4j
 @RestController
@@ -44,40 +43,70 @@ public class OrderController {
     private OrderProperties orderProperties;
 
     @Autowired
-    private RedisTemplate redisTemplate;
-
-    @Autowired
     private FeignSkuClient skuClient;
 
+    @Autowired
+    private OrderIdempotencyService orderIdempotencyService;
+
     @PostMapping("/orderInfo")
-    public CommonResult<Long> createOrder(@Validated @RequestBody OrderRequestDto orderRequestDto) throws InterruptedException {
+    public CommonResult<Long> createOrder(
+            @RequestHeader(value = STR_IDEMPOTENCY_KEY, required = false) String idempotencyKey,
+            @Validated @RequestBody OrderRequestDto orderRequestDto
+    ) throws InterruptedException {
         String userId = UserThreadLocal.getUserId();
         String incrementId = UserThreadLocal.getIncrementId();
         if (userId == null || userId.isBlank() || incrementId == null || incrementId.isBlank()) {
             log.info("创建订单缺少用户上下文,userId={},incrementId={}", userId, incrementId);
             return CommonResult.error(ErrorCode.UNAUTHORIZED);
         }
-        if (orderRequestDto.getSkuStockList() == null || orderRequestDto.getSkuStockList().isEmpty()) {
-            return CommonResult.error("商品信息不能为空");
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            log.info("创建订单缺少幂等请求头,userId={},incrementId={}", userId, incrementId);
+            return CommonResult.error(ErrorCode.VALIDATE_FAILED.getCode(), "缺少Idempotency-Key请求头");
         }
 
-        //幂等校验
-        if (Boolean.FALSE.equals(
-                redisTemplate.opsForValue().setIfAbsent(STR_ORDER_INCR + UserThreadLocal.getIncrementId(), UserThreadLocal.getUserId(), 3000, TimeUnit.MILLISECONDS)
-        )){
-            return CommonResult.error(ErrorCode.TOO_MANY_REQUESTS);
+        Long userIdLong = Long.parseLong(userId);
+        String requestHash = orderIdempotencyService.buildRequestHash(orderRequestDto);
+        OrderIdempotencyService.IdempotencyCheckResult idempotencyCheckResult =
+                orderIdempotencyService.tryBegin(userIdLong, idempotencyKey, requestHash);
+        if (idempotencyCheckResult.isConflict()) {
+            return CommonResult.error(409L, "同一幂等标识不能提交不同订单内容");
         }
+        if (idempotencyCheckResult.isSuccess()) {
+            return CommonResult.success("重复请求返回已有订单", idempotencyCheckResult.getOrderId());
+        }
+        if (idempotencyCheckResult.isProcessing()) {
+            return CommonResult.error(ErrorCode.TOO_MANY_REQUESTS.getCode(), "订单处理中，请勿重复提交");
+        }
+
         OrderParamBo orderParamBo = BeanConvertUtil.convert(orderRequestDto, OrderParamBo.class);
+        orderParamBo.setIdempotencyKey(idempotencyKey);
+        orderParamBo.setRequestHash(requestHash);
         CommonResult checkResult = orderService.checkStock(orderParamBo.getSkuStockList());
         if (checkResult.getCode() != ErrorCode.SUCCESS.getCode()){
+            orderIdempotencyService.markFailed(userIdLong, idempotencyKey, requestHash);
             return CommonResult.error("订单预扣减失败");
         }
         // Redis预扣减成功后生成回滚幂等标识,不依赖订单ID生成逻辑。
-        orderParamBo.setRollbackId("user:" + userId + ":increment:" + incrementId);
-        CommonResult<Long> result = createOrderService.createOrderWithTransaction(Long.parseLong(UserThreadLocal.getUserId()), orderParamBo);
+        orderParamBo.setRollbackId("user:" + userId + ":idempotency:" + idempotencyKey);
+        CommonResult<Long> result;
+        try {
+            result = createOrderService.createOrderWithTransaction(userIdLong, orderParamBo);
+        } catch (InterruptedException e) {
+            // 线程中断时标记幂等失败并继续向上抛出,避免处理中状态长时间占用。
+            orderIdempotencyService.markFailed(userIdLong, idempotencyKey, requestHash);
+            throw e;
+        } catch (RuntimeException e) {
+            // 订单创建异常时标记幂等失败,库存回滚由createOrderWithTransaction内部负责。
+            orderIdempotencyService.markFailed(userIdLong, idempotencyKey, requestHash);
+            throw e;
+        }
         if (result.getCode() != ErrorCode.SUCCESS.getCode()) {
-//            orderService.rollbackStock(orderParamBo.getSkuStockList());
+            orderIdempotencyService.markFailed(userIdLong, idempotencyKey, requestHash);
             return CommonResult.error("订单创建失败");
+        }
+        orderIdempotencyService.markSuccess(userIdLong, idempotencyKey, result.getData(), requestHash);
+        if ("重复请求返回已有订单".equals(result.getMessage())) {
+            return CommonResult.success(result.getMessage(), result.getData());
         }
         return orderService.afterCreateOrder(result.getData());
     }

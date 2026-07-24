@@ -14,6 +14,8 @@ public interface OrderMapper {
 
     List<OrderEntity> getOrderInfoByUserId(@Param("userId") Long userId);
 
+    OrderEntity getOrderInfoByIdempotency(@Param("userId") Long userId, @Param("idempotencyKey") String idempotencyKey);
+
     int saveOrderInfo(@Param("orderEntity") OrderEntity orderEntity);
 
 }

@@ -33,6 +33,16 @@ public class OrderParamBo {
     private Integer orderStatus;
 
     /**
+     * 客户端下单幂等标识
+     */
+    private String idempotencyKey;
+
+    /**
+     * 下单请求体摘要
+     */
+    private String requestHash;
+
+    /**
      * Redis预扣减回滚幂等标识
      */
     private String rollbackId;

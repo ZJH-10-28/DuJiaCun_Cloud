@@ -11,6 +11,16 @@ public class OrderEntity {
 
     private Long userId;
 
+    /**
+     * 客户端下单幂等标识
+     */
+    private String idempotencyKey;
+
+    /**
+     * 下单请求体摘要
+     */
+    private String requestHash;
+
     private Double orderPrice;
 
     /**
@@ -19,4 +29,9 @@ public class OrderEntity {
     private Integer orderStatus;
 
     private LocalDateTime createTime;
+
+    /**
+     * 订单更新时间
+     */
+    private LocalDateTime updateTime;
 }

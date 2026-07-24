@@ -5,6 +5,10 @@
 <resultMap id="resultMap" type="dujiacun.orderservice.entity.OrderEntity">
     <id property="orderId" column="order_id" javaType="java.lang.Long"/>
     <result  property="userId" column="user_id" javaType="java.lang.Long"/>
+    <!-- 客户端下单幂等标识,用于重复请求查询已有订单。 -->
+    <result  property="idempotencyKey" column="idempotency_key" javaType="java.lang.String"/>
+    <!-- 下单请求体摘要,用于校验同一幂等标识下请求内容是否一致。 -->
+    <result  property="requestHash" column="request_hash" javaType="java.lang.String"/>
     <result  property="orderPrice" column="order_price" javaType="java.lang.Double"/>
     <result  property="orderStatus" column="order_status" javaType="java.lang.Integer"/>
     <result  property="createTime" column="create_time" javaType="java.time.LocalDateTime"/>
@@ -12,7 +16,7 @@
 </resultMap>
 
     <select id="getOrderInfo" parameterType="dujiacun.orderservice.entity.bo.OrderParamBo" resultMap="resultMap">
-        SELECT order_id, user_id, order_price, create_time
+        SELECT order_id, user_id, idempotency_key, request_hash, order_price, create_time
         FROM order_info
         WHERE order_id = #{orderParamBo.orderId,jdbcType=BIGINT}
     </select>
@@ -24,14 +28,24 @@
         ORDER BY update_time DESC
     </select>
 
+    <!-- 根据用户ID和幂等Key查询已有订单,用于数据库唯一索引兜底。 -->
+    <select id="getOrderInfoByIdempotency" resultMap="resultMap">
+        SELECT order_id, user_id, idempotency_key, request_hash, order_price, order_status, create_time, update_time
+        FROM order_info
+        WHERE user_id = #{userId,jdbcType=BIGINT}
+        AND idempotency_key = #{idempotencyKey,jdbcType=VARCHAR}
+    </select>
+
     <insert id="saveOrderInfo" parameterType="dujiacun.orderservice.entity.OrderEntity">
         INSERT INTO
             order_info
-        (order_id, user_id, order_price, order_status, create_time, update_time)
+        (order_id, user_id, idempotency_key, request_hash, order_price, order_status, create_time, update_time)
 
         VALUES (
             #{orderEntity.orderId,jdbcType=BIGINT},
             #{orderEntity.userId,jdbcType=BIGINT},
+            #{orderEntity.idempotencyKey,jdbcType=VARCHAR},
+            #{orderEntity.requestHash,jdbcType=VARCHAR},
             #{orderEntity.orderPrice,jdbcType=DOUBLE},
             #{orderEntity.orderStatus,jdbcType=INTEGER},
             CURRENT_TIMESTAMP,

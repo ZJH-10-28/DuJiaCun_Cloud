@@ -6,6 +6,7 @@ import dujiacun.common.CommonResult;
 import dujiacun.common.error.ErrorCode;
 import dujiacun.common.exception.BusinessException;
 import dujiacun.orderservice.entity.SkuStock;
+import dujiacun.orderservice.entity.bo.OrderInfoBo;
 import dujiacun.orderservice.entity.bo.OrderParamBo;
 import dujiacun.orderservice.service.ICreateOrderService;
 import dujiacun.orderservice.service.IOrderService;
@@ -14,6 +15,7 @@ import io.seata.spring.annotation.GlobalTransactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -99,8 +101,21 @@ public class CreateOrderServiceImpl implements ICreateOrderService {
             orderParamBo.setOrderPrice(Math.round(orderPrice * 100.0) / 100.0);
             orderParamBo.setOrderStatus(ORDER_STATUS_WAIT_FOR_PAY);
 
-            //保存订单信息到order数据库,标记为预扣减
-            orderService.saveOrderInfo(orderParamBo);
+            try {
+                // 保存订单信息到order数据库,标记为预扣减,数据库唯一索引会兜底防止重复下单。
+                orderService.saveOrderInfo(orderParamBo);
+            } catch (DuplicateKeyException duplicateKeyException) {
+                // 命中幂等唯一索引时查询已有订单并返回,避免Redis异常或并发穿透造成重复订单。
+                OrderInfoBo existsOrder = orderService.getOrderInfoByIdempotency(userId, orderParamBo.getIdempotencyKey());
+                if (existsOrder != null) {
+                    // 当前请求已经完成Redis预扣减,返回已有订单前必须回滚本次预扣减库存。
+                    rollbackStockOrSendMq(orderParamBo);
+                    log.info("命中订单幂等唯一索引,返回已有订单,userId={},idempotencyKey={},orderId={}",
+                            userId, orderParamBo.getIdempotencyKey(), existsOrder.getOrderId());
+                    return CommonResult.success("重复请求返回已有订单", existsOrder.getOrderId());
+                }
+                throw duplicateKeyException;
+            }
 
             //保存订单明细到sku数据库
             CommonResult<String> skuResult = skuClient.saveSkuDetail(orderParamBo.getOrderId(), skuStockList);

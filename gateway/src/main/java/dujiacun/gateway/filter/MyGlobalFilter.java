@@ -40,6 +40,11 @@ public class MyGlobalFilter implements GlobalFilter {
     private static final String CREATE_ORDER_PATH = "/orders/orderInfo";
 
     /**
+     * refresh token刷新接口路径，仅该精确路径跳过access token校验。
+     */
+    private static final String REFRESH_TOKEN_PATH = "/users/refresh";
+
+    /**
      * 网关防抖Key前缀。
      */
     private static final String DEBOUNCE_KEY_PREFIX = "debounce:";
@@ -56,7 +61,9 @@ public class MyGlobalFilter implements GlobalFilter {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
 
         String path = exchange.getRequest().getURI().getPath();
-        if (path.startsWith("/users/login") || path.startsWith("/users/register")) {
+        if (path.startsWith("/users/login")
+                || path.startsWith("/users/register")
+                || REFRESH_TOKEN_PATH.equals(path)) {
             return chain.filter(exchange);
         }
 
@@ -102,6 +109,11 @@ public class MyGlobalFilter implements GlobalFilter {
         //JWT校验
         try{
             Claims claims = JwtUtil.parseToken(token);
+            if (!TOKEN_TYPE_ACCESS.equals(claims.get(STR_TOKEN_TYPE, String.class))) {
+                // refresh token和旧版无类型token不能访问受保护接口。
+                exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.UNAUTHORIZED);
+                return exchange.getResponse().setComplete();
+            }
             Map<String, Object> userInfo = new HashMap<>(claims);
 
             //客户端为admin

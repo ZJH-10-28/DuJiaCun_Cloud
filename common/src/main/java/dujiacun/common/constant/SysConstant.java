@@ -14,6 +14,31 @@ public interface SysConstant {
     String STR_TOKEN = "token";
 
     /**
+     * refresh token参数名称
+     */
+    String STR_REFRESH_TOKEN = "refreshToken";
+
+    /**
+     * token类型声明名称
+     */
+    String STR_TOKEN_TYPE = "tokenType";
+
+    /**
+     * access token类型
+     */
+    String TOKEN_TYPE_ACCESS = "access";
+
+    /**
+     * refresh token类型
+     */
+    String TOKEN_TYPE_REFRESH = "refresh";
+
+    /**
+     * JWT唯一标识声明名称
+     */
+    String STR_TOKEN_ID = "jti";
+
+    /**
      * token请求头名称
      */
     String STR_TOKEN_HEADER = "tokenHeader";
@@ -66,6 +91,11 @@ public interface SysConstant {
      * 黑名单token
      */
     String STR_BLACK_TOKEN = "blackToken:";
+
+    /**
+     * refresh token会话
+     */
+    String STR_REFRESH_TOKEN_KEY = "refreshToken:";
 
     /**
      * 订单幂等校验

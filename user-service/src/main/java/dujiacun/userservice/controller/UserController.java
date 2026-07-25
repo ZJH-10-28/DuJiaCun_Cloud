@@ -5,6 +5,7 @@ import dujiacun.common.error.ErrorCode;
 import dujiacun.common.util.BeanConvertUtil;
 import dujiacun.userservice.entity.UserEntity;
 import dujiacun.userservice.entity.bo.UserParamBo;
+import dujiacun.userservice.entity.dto.RefreshTokenRequestDto;
 import dujiacun.userservice.entity.dto.UserRequestDto;
 import dujiacun.userservice.entity.dto.UserResponseDto;
 import dujiacun.userservice.service.IUserService;
@@ -28,6 +29,17 @@ public class UserController {
             return CommonResult.error(ErrorCode.VALIDATE_FAILED);
         }
 
+        return CommonResult.success(tokenMap);
+    }
+
+    /**
+     * 使用一次性refresh token轮换新的access、refresh令牌对。
+     */
+    @PostMapping("/refresh")
+    public CommonResult<Map<String, Object>> refreshToken(
+            @RequestBody @Validated RefreshTokenRequestDto refreshTokenRequestDto) {
+        Map<String, Object> tokenMap =
+                userService.refreshToken(refreshTokenRequestDto.getRefreshToken());
         return CommonResult.success(tokenMap);
     }
 

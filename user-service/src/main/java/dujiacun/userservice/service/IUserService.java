@@ -13,4 +13,9 @@ public interface IUserService {
     UserInfoBo getByUserId(Long userId);
 
     Map<String, Object> login(String userName, String passWord);
+
+    /**
+     * 使用一次性refresh token轮换新的令牌对。
+     */
+    Map<String, Object> refreshToken(String refreshToken);
 }

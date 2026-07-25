@@ -25,6 +25,7 @@ public class CorsConfig {
         config.addAllowedHeader("isAdmin");
         config.addAllowedHeader("userId");
         config.addAllowedHeader("Content-Type");
+        config.addAllowedHeader("Idempotency-Key");         // 允许前端传递订单业务幂等键
         config.setAllowCredentials(true);                   // 允许携带凭证
         config.setMaxAge(3600L);                            // 设置预检请求缓存时间 1小时
 

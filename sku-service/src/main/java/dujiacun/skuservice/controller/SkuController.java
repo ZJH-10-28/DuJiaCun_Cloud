@@ -1,5 +1,6 @@
 package dujiacun.skuservice.controller;
 
+import com.github.pagehelper.PageInfo;
 import dujiacun.common.CommonResult;
 import dujiacun.common.util.BeanConvertUtil;
 import dujiacun.skuservice.entity.SkuParamBo;
@@ -21,10 +22,17 @@ public class SkuController {
     private ISkuService skuService;
 
     @PostMapping("/skuList")
-    public CommonResult<List<SkuResponseDto>> getSkuInfo(@RequestBody SkuRequestDto skuRequestDto) {
+    public CommonResult<PageInfo<SkuResponseDto>> getSkuInfo(@RequestBody SkuRequestDto skuRequestDto) {
         SkuParamBo skuParamBo = BeanConvertUtil.convert(skuRequestDto, SkuParamBo.class);
-        List<SkuResponseDto> list = skuService.getSkuInfo(skuParamBo).getData();
-        return CommonResult.success(list);
+        PageInfo<SkuResponseDto> pageInfo = skuService.getSkuInfo(
+                skuRequestDto.getPageNum(),
+                skuRequestDto.getPageSize(),
+                skuParamBo
+        );
+        if (pageInfo == null || pageInfo.getList().isEmpty()) {
+            return CommonResult.error("检索不到商品");
+        }
+        return CommonResult.success("检索完成", pageInfo);
     }
 
     @GetMapping("/skuInfoById")

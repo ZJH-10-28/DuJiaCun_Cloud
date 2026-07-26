@@ -1,5 +1,7 @@
 package dujiacun.skuservice.service;
 
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import dujiacun.common.CommonResult;
 import dujiacun.common.error.ErrorCode;
 import dujiacun.common.exception.BusinessException;
@@ -27,15 +29,23 @@ public class SkuServiceImpl implements ISkuService{
     private SkuMapper skuMapper;
 
     @Override
-    public CommonResult<List<SkuResponseDto>> getSkuInfo(SkuParamBo skuParamBo) {
+    public PageInfo<SkuResponseDto> getSkuInfo(Integer pageNum, Integer pageSize, SkuParamBo skuParamBo) {
+        // 必须在执行 Mapper 查询前开启分页，PageHelper 才能拦截并生成分页 SQL。
+        PageHelper.startPage(pageNum, pageSize);
+        List<SkuEntity> skuEntityList = skuMapper.getSkuInfo(skuParamBo);
+        PageInfo<SkuEntity> skuEntityPageInfo = new PageInfo<>(skuEntityList);
+
         List<SkuResponseDto> list = new ArrayList<>();
-        for (SkuEntity skuEntity : skuMapper.getSkuInfo(skuParamBo)){
+        for (SkuEntity skuEntity : skuEntityList){
             list.add(BeanConvertUtil.convert(skuEntity, SkuResponseDto.class));
         }
-        if(list.isEmpty()){
-            return CommonResult.error(ErrorCode.FAILED.getCode(), "检索不到商品");
-        }
-        return CommonResult.success("检索完成",list);
+
+        // DTO 转换会创建新的列表，需要显式保留数据库查询得到的分页元数据。
+        PageInfo<SkuResponseDto> responsePageInfo = new PageInfo<>(list);
+        responsePageInfo.setTotal(skuEntityPageInfo.getTotal());
+        responsePageInfo.setPageNum(skuEntityPageInfo.getPageNum());
+        responsePageInfo.setPageSize(skuEntityPageInfo.getPageSize());
+        return responsePageInfo;
     }
 
     @Override

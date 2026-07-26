@@ -14,6 +14,9 @@ dependencies {
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
     testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.3'
 
+    // PageHelper 分页插件，与订单服务保持一致
+    implementation 'com.github.pagehelper:pagehelper-spring-boot-starter:4.1.0'
+
     //Nacos
     implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-nacos-discovery'
     //Nacos 配置中心

@@ -1,5 +1,6 @@
 package dujiacun.skuservice.service;
 
+import com.github.pagehelper.PageInfo;
 import dujiacun.common.CommonResult;
 import dujiacun.skuservice.entity.*;
 
@@ -8,7 +9,7 @@ import java.util.Map;
 
 public interface ISkuService {
 
-    CommonResult<List<SkuResponseDto>> getSkuInfo(SkuParamBo skuParamBo);
+    PageInfo<SkuResponseDto> getSkuInfo(Integer pageNum, Integer pageSize, SkuParamBo skuParamBo);
 
     CommonResult<List<SkuResponseDto>> getSkuInfoById(List<Long> skuIds);
 

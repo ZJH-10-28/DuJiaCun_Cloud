@@ -58,5 +58,13 @@ public class SkuRequestDto {
      * 逻辑删除
      */
     private Integer isDeleted;
+    /**
+     * 当前页码
+     */
+    private Integer pageNum = 1;
+    /**
+     * 每页数量
+     */
+    private Integer pageSize = 10;
 
 }
